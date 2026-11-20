@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baráti Online Sakk (0 Ft)</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1e1e24;
+      color: #f4f4f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      margin: 0;
+    }
+    .panel {
+      background: #2b2b36;
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+      max-width: 440px;
+      width: 100%;
+    }
+    button {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    button:hover { background: #43a047; }
+    #status { font-weight: bold; font-size: 17px; margin-bottom: 6px; }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      width: min(90vw, 480px);
+      height: min(90vw, 480px);
+      border: 4px solid #3c3c4a;
+      border-radius: 6px;
+      overflow: hidden;
+      user-select: none;
+    }
+    .square {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(28px, 7vw, 44px);
+      cursor: pointer;
+      position: relative;
+    }
+    .light { background: #eeeed2; }
+    .dark { background: #769656; }
+    .selected { background: #f6f669 !important; }
+    .hint::after {
+      content: "";
+      width: 28%;
+      height: 28%;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 50%;
+      position: absolute;
+    }
+    .piece-w { color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.85); }
+    .piece-b { color: #18181b; }
+  </style>
+</head>
+<body>
+
+  <div class="panel">
+    <div id="status">Kapcsolódás a hálózathoz...</div>
+    <div id="substatus" style="font-size: 14px; color: #bbb;"></div>
+    <button id="copyBtn">Meghívó link másolása</button>
+  </div>
+
+  <div id="board"></div>
+
+  <script type="module">
+    // 1. Külső könyvtárak betöltése telepítés nélkül (CDN-ről)
+    import { Chess } from 'https://esm.sh/chess.js@1.0.0-beta.8';
+    import { joinRoom, selfId } from 'https://esm.sh/trystero@0.20.0/nostr';
+
+    // 2. Szobakód kiolvasása az URL-ből, vagy új generálása
+    const urlParams = new URLSearchParams(window.location.search);
+    let roomId = urlParams.get('szoba');
+    if (!roomId) {
+      roomId = Math.random().toString(36).substring(2, 8);
+      window.history.replaceState({}, '', `?szoba=${roomId}`);
+    }
+
+    // Meghívó link másolása gomb
+    document.getElementById('copyBtn').onclick = () => {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link vágólapra másolva! Küldd el a barátodnak.');
+    };
+
+    // 3. Játékállapot és P2P szoba inicializálása
+    const game = new Chess();
+    const room = joinRoom({ appId: 'barati-sakk-0ft-v1' }, roomId);
+    const [sendMove, getMove] = room.makeAction('move');
+
+    let myColor = null;          // 'w' (világos) vagy 'b' (sötét)
+    let selectedSquare = null;   // Aktuálisan kijelölt mező (pl. 'e2')
+    let opponentJoined = false;
+
+    const statusEl = document.getElementById('status');
+    const substatusEl = document.getElementById('substatus');
+    const boardEl = document.getElementById('board');
+
+    // Bábuk Unicode karakterei (\uFE0E megakadályozza, hogy mobilon emojivá alakuljanak)
+    const PIECES = {
+      w: { k: '♔\uFE0E', q: '♕\uFE0E', r: '♖\uFE0E', b: '♗\uFE0E', n: '♘\uFE0E', p: '♙\uFE0E' },
+      b: { k: '♚\uFE0E', q: '♛\uFE0E', r: '♜\uFE0E', b: '♝\uFE0E', n: '♞\uFE0E', p: '♟\uFE0E' }
+    };
+
+    statusEl.textContent = 'Várakozás a barátodra...';
+    substatusEl.textContent = `Szobakód: ${roomId}`;
+
+    // 4. Amikor a barátod megnyitja a linket és csatlakozik
+    room.onPeerJoin((peerId) => {
+      if (opponentJoined) return; // Harmadik fél ne zavarja meg a meccset
+      opponentJoined = true;
+
+      // Szerver nélküli színsorsolás: a két böngésző saját azonosítója dönti el, ki a világos
+      myColor = selfId < peerId ? 'w' : 'b';
+      game.reset();
+      selectedSquare = null;
+
+      substatusEl.textContent = myColor === 'w' ? 'Te vagy a VILÁGOS' : 'Te vagy a SÖTÉT';
+      updateStatus();
+      renderBoard();
+    });
+
+    // Ha a barátod bezárja az oldalt
+    room.onPeerLeave(() => {
+      opponentJoined = false;
+      statusEl.textContent = 'Az ellenfél kilépett.';
+    });
+
+    // 5. Amikor lépés érkezik a barátodtól
+    getMove((move) => {
+      game.move(move);
+      selectedSquare = null;
+      updateStatus();
+      renderBoard();
+    });
+
+    // 6. Kattintás kezelése a táblán
+    function handleSquareClick(square) {
+      if (!opponentJoined || game.isGameOver()) return;
+      if (game.turn() !== myColor) return; // Csak a saját körödben léphetsz
+
+      // Ha már ki van jelölve egy bábu, megpróbálunk lépni vele
+      if (selectedSquare) {
+        try {
+          const moveData = { from: selectedSquare, to: square, promotion: 'q' };
+          const move = game.move(moveData); // Ha szabálytalan, hibát dob és a catch ágra ugrik
+          
+          selectedSquare = null;
+          sendMove(moveData); // Elküldjük a szabályos lépést a barátodnak
+          updateStatus();
+          renderBoard();
+          return;
+        } catch (e) {
+          // Nem szabályos célmező: megnézzük, nem egy másik saját bábura kattintott-e
+        }
+      }
+
+      // Saját bábu kijelölése
+      const piece = game.get(square);
+      if (piece && piece.color === myColor) {
+        selectedSquare = square;
+      } else {
+        selectedSquare = null;
+      }
+      renderBoard();
+    }
+
+    // 7. Szöveges állapot frissítése
+    function updateStatus() {
+      if (game.isCheckmate()) {
+        statusEl.textContent = game.turn() === myColor ? 'Matt! Vesztettél.' : 'Sakk-matt! Nyertél!';
+      } else if (game.isDraw()) {
+        statusEl.textContent = 'Döntetlen!';
+      } else {
+        const turnText = game.turn() === myColor ? 'Te következel!' : 'Az ellenfél lép...';
+        const checkText = game.isCheck() ? ' (SAKK!)' : '';
+        statusEl.textContent = turnText + checkText;
+      }
+    }
+
+    // 8. A 8x8-as tábla kirajzolása
+    function renderBoard() {
+      boardEl.innerHTML = '';
+      const boardState = game.board();
+      
+      // Érvényes lépések lekérése a kijelölt bábunak (pöttyök kirajzolásához)
+      const legalTargets = selectedSquare
+        ? game.moves({ square: selectedSquare, verbose: true }).map(m => m.to)
+        : [];
+
+      // Ha sötéttel vagy, megfordítjuk a táblát, hogy a te bábaid legyenek alul
+      const rows = myColor === 'b' ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+      const cols = myColor === 'b' ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+
+      for (const r of rows) {
+        for (const c of cols) {
+          const sqDiv = document.createElement('div');
+          const isLight = (r + c) % 2 === 0;
+          const squareName = String.fromCharCode(97 + c) + (8 - r); // pl. 'e4'
+
+          sqDiv.className = `square ${isLight ? 'light' : 'dark'}`;
+          if (selectedSquare === squareName) sqDiv.classList.add('selected');
+          if (legalTargets.includes(squareName)) sqDiv.classList.add('hint');
+
+          const piece = boardState[r][c];
+          if (piece) {
+            sqDiv.textContent = PIECES[piece.color][piece.type];
+            sqDiv.classList.add(piece.color === 'w' ? 'piece-w' : 'piece-b');
+          }
+
+          sqDiv.onclick = () => handleSquareClick(squareName);
+          boardEl.appendChild(sqDiv);
+        }
+      }
+    }
+
+    renderBoard();
+  </script>
+</body>
+</html>
