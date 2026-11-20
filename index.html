@@ -1,198 +1,2332 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="hu" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Baráti Online Sakk (0 Ft)</title>
+  <title>Baráti Játékterem — 0 Ft</title>
+  <!-- Tailwind CSS betöltése -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Inter betűtípus -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
   <style>
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #1e1e24;
-      color: #f4f4f6;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #0b1120;
+      color: #f1f5f9;
+      overflow-x: hidden;
     }
-    .panel {
-      background: #2b2b36;
-      padding: 15px 20px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      text-align: center;
-      max-width: 440px;
-      width: 100%;
-      box-sizing: border-box;
+
+    .casino-felt {
+      background-color: #0e3b2c;
+      background-image:
+        radial-gradient(circle at 50% 25%, rgba(25, 115, 84, 0.55) 0%, rgba(14, 59, 44, 0.92) 65%, rgba(7, 34, 25, 1) 100%),
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 2px, transparent 2px, transparent 6px);
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.65), 0 20px 45px rgba(0, 0, 0, 0.55);
+      border: 6px solid #292018;
+      outline: 2px solid #854d0e;
     }
-    button {
-      background: #4caf50;
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 6px;
-      font-size: 15px;
-      cursor: pointer;
-      margin-top: 8px;
+
+    @keyframes dealCard {
+      0% {
+        opacity: 0;
+        transform: translateY(-22px) scale(0.88) rotate(-4deg);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotate(0deg);
+      }
     }
-    button:hover { background: #43a047; }
-    #status { font-weight: bold; font-size: 17px; margin-bottom: 6px; }
-    #board {
+
+    .playing-card {
+      width: 64px;
+      height: 92px;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(15, 23, 42, 0.15);
+      animation: dealCard 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      user-select: none;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 640px) {
+      .playing-card {
+        width: 74px;
+        height: 106px;
+      }
+    }
+
+    .card-back {
+      background-color: #1e3a8a;
+      background-image:
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.12) 0, rgba(255, 255, 255, 0.12) 4px, transparent 4px, transparent 10px),
+        repeating-linear-gradient(-45deg, rgba(220, 38, 38, 0.25) 0, rgba(220, 38, 38, 0.25) 4px, transparent 4px, transparent 10px);
+      border: 3px solid #f8fafc;
+    }
+
+    .poker-chip {
+      position: relative;
+      border: 3px dashed rgba(255, 255, 255, 0.75);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45), inset 0 0 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+    .poker-chip:hover:not(:disabled) {
+      transform: translateY(-3px) scale(1.04);
+      filter: brightness(1.08);
+    }
+    .poker-chip:active:not(:disabled) {
+      transform: translateY(0) scale(0.97);
+    }
+
+    .sudoku-grid {
       display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      grid-template-rows: repeat(8, 1fr);
-      width: min(90vw, 480px);
-      height: min(90vw, 480px);
-      border: 4px solid #3c3c4a;
-      border-radius: 6px;
+      grid-template-columns: repeat(9, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      max-width: 486px;
+      border: 3px solid #64748b;
+      border-radius: 10px;
       overflow: hidden;
+      background-color: #1e293b;
       user-select: none;
     }
-    .square {
+
+    .sudoku-cell {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(28px, 7vw, 44px);
+      border-right: 1px solid #334155;
+      border-bottom: 1px solid #334155;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.1s ease;
+    }
+
+    .sudoku-cell[data-col="2"],
+    .sudoku-cell[data-col="5"] {
+      border-right: 2.5px solid #94a3b8;
+    }
+
+    .sudoku-cell[data-row="2"],
+    .sudoku-cell[data-row="5"] {
+      border-bottom: 2.5px solid #94a3b8;
+    }
+
+    .sudoku-cell[data-col="8"] { border-right: none; }
+    .sudoku-cell[data-row="8"] { border-bottom: none; }
+
+    @keyframes shakeCell {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+    .shake-error {
+      animation: shakeCell 0.25s ease-in-out 2;
+    }
+
+    .chess-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      aspect-ratio: 1 / 1;
+      width: 100%;
+      max-width: 504px;
+      border: 4px solid #334155;
+      border-radius: 12px;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .chess-square {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(28px, 6.8vw, 46px);
       line-height: 1;
       cursor: pointer;
       position: relative;
       overflow: hidden;
+      transition: background-color 0.1s ease;
     }
-    .light { background: #eeeed2; }
-    .dark { background: #769656; }
-    .selected { background: #f6f669 !important; }
-    .hint::after {
+
+    .chess-light { background-color: #e2e8f0; }
+    .chess-dark { background-color: #4f7754; }
+    .chess-selected { background-color: #eab308 !important; }
+    .chess-last-move { box-shadow: inset 0 0 0 999px rgba(250, 204, 21, 0.34); }
+    .chess-check {
+      background: radial-gradient(circle, rgba(239, 68, 68, 0.94) 0%, rgba(185, 28, 28, 0.8) 70%, rgba(153, 27, 27, 0.92) 100%) !important;
+    }
+
+    .chess-hint::after {
       content: "";
       width: 28%;
       height: 28%;
-      background: rgba(0, 0, 0, 0.25);
+      background: rgba(15, 23, 42, 0.35);
       border-radius: 50%;
       position: absolute;
+      pointer-events: none;
     }
-    .piece-w {
+
+    .chess-capture::after {
+      content: "";
+      width: 82%;
+      height: 82%;
+      border: 4px solid rgba(15, 23, 42, 0.38);
+      border-radius: 50%;
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .chess-piece-w {
       color: #ffffff;
       -webkit-text-stroke: 1.5px #18181b;
-      text-shadow: 0 2px 3px rgba(0, 0, 0, 0.45);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      z-index: 1;
     }
-    .piece-b {
+
+    .chess-piece-b {
       color: #18181b;
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);
+      z-index: 1;
     }
   </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
-  <div class="panel">
-    <div id="status">Kapcsolódás a hálózathoz...</div>
-    <div id="substatus" style="font-size: 14px; color: #bbb;"></div>
-    <button id="copyBtn">Meghívó link másolása</button>
-  </div>
+  <!-- Üzenetértesítő (Toast) konténer -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-xs sm:max-w-sm pointer-events-none"></div>
 
-  <div id="board"></div>
+  <!-- Felső navigációs sáv és fülváltó -->
+  <header class="bg-slate-900/95 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-6xl mx-auto px-3 sm:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-950/50 text-lg font-extrabold text-white">
+          ♟
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">Baráti Játékterem — 0 Ft</h1>
+          <p class="text-[11px] text-slate-400">P2P Multiplayer Sakk, Blackjack & Sudoku</p>
+        </div>
+      </div>
+
+      <nav class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto" role="tablist">
+        <button
+          id="tabChess"
+          role="tab"
+          aria-selected="true"
+          class="flex-1 md:flex-initial px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-emerald-600 text-white shadow-md flex items-center justify-center gap-1.5 whitespace-nowrap"
+        >
+          <span>♟️</span>
+          <span>Multiplayer Sakk</span>
+        </button>
+        <button
+          id="tabBlackjack"
+          role="tab"
+          aria-selected="false"
+          class="flex-1 md:flex-initial px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1.5 whitespace-nowrap"
+        >
+          <span>🃏</span>
+          <span>Multiplayer Blackjack</span>
+        </button>
+        <button
+          id="tabSudoku"
+          role="tab"
+          aria-selected="false"
+          class="flex-1 md:flex-initial px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1.5 whitespace-nowrap"
+        >
+          <span>🔢</span>
+          <span>Sudoku</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- FŐ TARTALOM -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
+
+    <!-- KÖZÖS P2P SZOBAKEZELŐ SÁV -->
+    <section id="sharedP2PBar" class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xl">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+        <div class="lg:col-span-5 flex flex-wrap items-center gap-2">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 flex items-center gap-2">
+            <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Szoba:</span>
+            <span id="sharedRoomCodeDisplay" class="font-mono font-bold text-amber-400 text-base tracking-widest">------</span>
+          </div>
+
+          <button
+            id="sharedCopyLinkBtn"
+            class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 shadow"
+            title="Teljes meghívó link másolása"
+          >
+            <span>🔗</span>
+            <span>Meghívó link másolása</span>
+          </button>
+
+          <button
+            id="sharedCopyCodeBtn"
+            class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs sm:text-sm font-semibold transition border border-slate-700"
+            title="Csak a szobakód másolása"
+          >
+            Kód másolása
+          </button>
+        </div>
+
+        <div class="lg:col-span-4 flex items-center gap-2">
+          <input
+            id="sharedJoinRoomInput"
+            type="text"
+            maxlength="12"
+            placeholder="Szobakód beírása..."
+            class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 focus:outline-none rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 uppercase font-mono"
+          />
+          <button
+            id="sharedJoinRoomBtn"
+            class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-sm font-semibold transition shrink-0 shadow"
+          >
+            Csatlakozás
+          </button>
+        </div>
+
+        <div class="lg:col-span-3 flex items-center gap-2">
+          <label for="sharedNameInput" class="text-xs text-slate-400 font-semibold shrink-0">Név:</label>
+          <input
+            id="sharedNameInput"
+            type="text"
+            maxlength="16"
+            placeholder="Játékosnév"
+            class="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 focus:outline-none rounded-xl px-3 py-2 text-sm text-white font-medium"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- 1. JÁTÉK: MULTIPLAYER SAKK                                -->
+    <!-- ========================================================= -->
+    <section id="viewChess" class="space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span id="chessConnectionDot" class="w-3 h-3 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+          <div>
+            <div id="chessStatusText" class="text-sm sm:text-base font-bold text-white">
+              Várakozás a barátodra...
+            </div>
+            <div id="chessSubStatusText" class="text-xs text-slate-400">
+              Oszd meg a meghívó linket, vagy kapcsold be az egyéni gyakorlást!
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <span id="chessRoleBadge" class="text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700">
+            Várakozás ellenfélre
+          </span>
+
+          <button
+            id="chessSoloToggleBtn"
+            class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs sm:text-sm font-semibold transition shadow flex items-center gap-1.5"
+          >
+            <span>♟️</span>
+            <span>Gyakorlás egyedül</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-7 flex flex-col items-center">
+          <div class="w-full max-w-[504px] space-y-2">
+            <div class="flex items-center justify-between bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2 text-xs sm:text-sm">
+              <div class="flex items-center gap-2">
+                <span id="chessTopPlayerIcon" class="text-base">♚</span>
+                <span id="chessTopPlayerName" class="font-bold text-slate-200">Sötét</span>
+              </div>
+              <span id="chessTopTurnIndicator" class="hidden text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Lépésben
+              </span>
+            </div>
+
+            <div class="relative w-full">
+              <div id="chessBoard" class="chess-board shadow-2xl"></div>
+
+              <div
+                id="chessPromotionModal"
+                class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center p-4 z-20"
+              >
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 sm:p-5 shadow-2xl text-center max-w-xs w-full">
+                  <h3 class="text-sm sm:text-base font-extrabold text-white mb-1">Gyalogátváltozás</h3>
+                  <p class="text-xs text-slate-400 mb-4">Válassz új bábut:</p>
+                  <div id="chessPromotionChoices" class="grid grid-cols-4 gap-2"></div>
+                  <button
+                    id="chessCancelPromotionBtn"
+                    class="mt-3 w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-semibold transition"
+                  >
+                    Mégse
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2 text-xs sm:text-sm">
+              <div class="flex items-center gap-2">
+                <span id="chessBottomPlayerIcon" class="text-base">♔</span>
+                <span id="chessBottomPlayerName" class="font-bold text-white">Világos (Te)</span>
+              </div>
+              <span id="chessBottomTurnIndicator" class="hidden text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Lépésben
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 max-w-[504px] w-full mx-auto">
+          <div class="grid grid-cols-2 gap-2.5">
+            <button
+              id="chessRematchBtn"
+              class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs sm:text-sm font-bold transition shadow flex items-center justify-center gap-1.5"
+            >
+              <span>🔄</span>
+              <span>Új parti / Visszavágó</span>
+            </button>
+
+            <button
+              id="chessResignBtn"
+              class="px-4 py-2.5 rounded-xl bg-rose-600/90 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 text-white text-xs sm:text-sm font-bold transition shadow flex items-center justify-center gap-1.5"
+            >
+              <span>🏳️</span>
+              <span>Feladás</span>
+            </button>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs uppercase tracking-wider font-bold text-slate-400">Lépéslista (PGN)</span>
+              <span id="chessMoveCountBadge" class="text-xs font-mono text-slate-400">0 lépés</span>
+            </div>
+
+            <div
+              id="chessMoveList"
+              class="bg-slate-950 border border-slate-800 rounded-xl p-3 h-64 sm:h-72 overflow-y-auto font-mono text-xs sm:text-sm space-y-1"
+            >
+              <div class="text-slate-500 italic text-center py-8">Még nem történt lépés.</div>
+            </div>
+          </div>
+
+          <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-400 space-y-1">
+            <p>• Kattints a saját bábura a lehetséges lépések megjelenítéséhez.</p>
+            <p>• Online 2 fős partiban visszavágókor a színek automatikusan felcserélődnek.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- 2. JÁTÉK: MULTIPLAYER BLACKJACK                           -->
+    <!-- ========================================================= -->
+    <section id="viewBlackjack" class="hidden space-y-4">
+      <div class="casino-felt rounded-3xl p-4 sm:p-6 md:p-8 flex flex-col justify-between min-h-[540px] relative">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-emerald-800/60">
+          <div class="flex items-center gap-2.5 bg-black/35 backdrop-blur-sm px-3.5 py-2 rounded-xl border border-white/10">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="bjStatusBanner" class="text-sm sm:text-base font-semibold text-emerald-50">
+              Kapcsolódás a P2P hálózathoz...
+            </span>
+            <span id="bjRoleBadge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+              Csatlakozás...
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2.5">
+            <div class="bg-black/40 border border-amber-500/30 rounded-xl px-3.5 py-1.5 flex items-center gap-2">
+              <span class="text-xs text-amber-200/80 font-medium">Egyenleged:</span>
+              <span id="bjMyChipsDisplay" class="text-base sm:text-lg font-extrabold text-amber-400">1000</span>
+              <span class="text-xs text-amber-400">🪙</span>
+            </div>
+
+            <button
+              id="bjRefillBtn"
+              class="hidden px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs sm:text-sm font-extrabold transition shadow-lg animate-bounce"
+            >
+              +1000 Zseton újratöltés
+            </button>
+          </div>
+        </div>
+
+        <div class="my-5 flex flex-col items-center justify-center">
+          <div class="flex items-center gap-2 mb-2.5">
+            <span class="text-xs uppercase tracking-widest font-bold text-emerald-200/80">Osztó (Dealer)</span>
+            <span
+              id="bjDealerScore"
+              class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-black/50 text-white border border-white/15"
+            >
+              0
+            </span>
+          </div>
+          <div id="bjDealerCards" class="flex items-center justify-center gap-2 sm:gap-3 min-h-[96px] sm:min-h-[110px]"></div>
+        </div>
+
+        <div class="my-3">
+          <div id="bjPlayersContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"></div>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-emerald-800/60">
+          <div id="bjControlsBetting" class="flex flex-col items-center gap-3">
+            <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+              <button data-chip="10" class="bj-chip-btn poker-chip w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-sky-600 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center">10</button>
+              <button data-chip="50" class="bj-chip-btn poker-chip w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-rose-600 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center">50</button>
+              <button data-chip="100" class="bj-chip-btn poker-chip w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-slate-900 text-amber-400 font-extrabold text-xs sm:text-sm flex items-center justify-center">100</button>
+              <button data-chip="500" class="bj-chip-btn poker-chip w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-purple-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center">500</button>
+              <button
+                id="bjClearBetBtn"
+                class="px-3.5 py-2.5 rounded-xl bg-black/45 hover:bg-black/65 border border-white/15 text-slate-200 text-xs sm:text-sm font-semibold transition"
+              >
+                Tét törlése
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-3">
+              <div class="bg-black/40 px-4 py-2 rounded-xl border border-white/10 text-sm">
+                <span class="text-emerald-200/80">Aktuális téted:</span>
+                <span id="bjCurrentBetDisplay" class="font-extrabold text-amber-400 ml-1">0</span> 🪙
+              </div>
+
+              <button
+                id="bjConfirmBetBtn"
+                class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-extrabold text-sm transition shadow-lg"
+              >
+                Tét megerősítése
+              </button>
+
+              <button
+                id="bjForceDealBtn"
+                class="hidden px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm transition shadow-lg"
+              >
+                Osztás most
+              </button>
+            </div>
+          </div>
+
+          <div id="bjControlsPlaying" class="hidden flex flex-wrap items-center justify-center gap-3">
+            <button
+              id="bjHitBtn"
+              class="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-extrabold text-sm sm:text-base transition shadow-lg"
+            >
+              🃏 Lap (Hit)
+            </button>
+            <button
+              id="bjStandBtn"
+              class="px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-sm sm:text-base transition shadow-lg"
+            >
+              ✋ Megáll (Stand)
+            </button>
+            <button
+              id="bjDoubleBtn"
+              class="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-extrabold text-sm sm:text-base transition shadow-lg"
+            >
+              ⚡ Duplázás (Double)
+            </button>
+          </div>
+
+          <div id="bjControlsResult" class="hidden flex flex-col items-center gap-3">
+            <button
+              id="bjNewRoundBtn"
+              class="px-7 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm sm:text-base transition shadow-xl"
+            >
+              🔄 Következő kör
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/70 border border-slate-800/80 rounded-2xl p-3.5 text-xs text-slate-400 flex flex-wrap justify-between gap-2">
+        <span>• 6 paklis cipő (automatikus újrakeverés 52 lap alatt)</span>
+        <span>• Blackjack kifizetés: <strong class="text-slate-200">3:2 (2.5×)</strong> | Győzelem: <strong class="text-slate-200">2×</strong> | Push: <strong class="text-slate-200">1×</strong></span>
+        <span>• Az Osztó 17-ig húz, és minden 17-en megáll</span>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- 3. JÁTÉK: SUDOKU                                          -->
+    <!-- ========================================================= -->
+    <section id="viewSudoku" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button data-diff="easy" class="sdk-diff-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-indigo-600 text-white transition">
+              Könnyű
+            </button>
+            <button data-diff="medium" class="sdk-diff-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition">
+              Közepes
+            </button>
+            <button data-diff="hard" class="sdk-diff-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition">
+              Nehéz
+            </button>
+          </div>
+
+          <button
+            id="sdkNewGameBtn"
+            class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs sm:text-sm font-semibold transition shadow"
+          >
+            Új játék
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3 sm:gap-4">
+          <div class="bg-slate-950 border border-slate-800 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold">
+            <span class="text-slate-400">Hibák:</span>
+            <span id="sdkMistakesDisplay" class="text-rose-400 font-bold ml-1">0 / 3</span>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-mono font-bold text-sky-400 flex items-center gap-1.5">
+            <span>⏱</span>
+            <span id="sdkTimerDisplay">00:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-7 flex flex-col items-center">
+          <div class="relative w-full max-w-[486px]">
+            <div id="sdkBoard" class="sudoku-grid shadow-2xl"></div>
+
+            <div
+              id="sdkOverlay"
+              class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center p-6 text-center border border-slate-700"
+            >
+              <div id="sdkOverlayIcon" class="text-5xl mb-3">🏆</div>
+              <h2 id="sdkOverlayTitle" class="text-2xl font-extrabold text-white mb-1">Gratulálunk!</h2>
+              <p id="sdkOverlaySubtitle" class="text-sm text-slate-300 mb-5">Hibátlanul megoldottad a Sudokut!</p>
+              <div class="flex gap-3">
+                <button
+                  id="sdkOverlayNewBtn"
+                  class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition shadow-lg"
+                >
+                  Új feladvány
+                </button>
+                <button
+                  id="sdkOverlayContinueBtn"
+                  class="hidden px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm border border-slate-600 transition"
+                >
+                  Folytatás
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-5 max-w-[486px] w-full mx-auto">
+          <div class="grid grid-cols-3 gap-2.5">
+            <button
+              id="sdkPencilBtn"
+              class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 flex flex-col items-center justify-center gap-1 transition relative"
+              title="Ceruza mód kapcsolása (N billentyű)"
+            >
+              <span id="sdkPencilBadge" class="absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
+                KI
+              </span>
+              <span class="text-xl">✏️</span>
+              <span class="text-xs font-semibold text-slate-200">Ceruza (N)</span>
+            </button>
+
+            <button
+              id="sdkEraseBtn"
+              class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 flex flex-col items-center justify-center gap-1 transition"
+              title="Cella törlése (Backspace / Delete)"
+            >
+              <span class="text-xl">🧹</span>
+              <span class="text-xs font-semibold text-slate-200">Törlés</span>
+            </button>
+
+            <button
+              id="sdkHintBtn"
+              class="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-700 flex flex-col items-center justify-center gap-1 transition"
+              title="Kijelölt üres cella felfedése"
+            >
+              <span class="text-xl">💡</span>
+              <span class="text-xs font-semibold text-slate-200">Segítség</span>
+            </button>
+          </div>
+
+          <div>
+            <div class="text-xs text-slate-400 font-semibold mb-2 flex justify-between">
+              <span>Szám beírása</span>
+              <span>Billentyűzet: Nyilak, 1–9, Del, N</span>
+            </div>
+            <div id="sdkNumpad" class="grid grid-cols-3 gap-2.5"></div>
+          </div>
+
+          <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-400 space-y-1">
+            <p><strong class="text-slate-200">Tipp:</strong> Kattints egy cellára, és az azonos sor, oszlop, 3×3-as blokk, valamint az összes egyező szám kiemelésre kerül.</p>
+            <p><strong class="text-slate-200">Ceruza mód (<kbd class="px-1 py-0.5 bg-slate-800 rounded text-slate-200">N</kbd>):</strong> Kis jegyzetszámokat írhatsz a cellába a lehetséges jelöltekhez.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script type="module">
     import { Chess } from 'https://esm.sh/chess.js@1.0.0-beta.8';
     import { joinRoom, selfId } from 'https://esm.sh/trystero@0.20.0/nostr';
 
-    const urlParams = new URLSearchParams(window.location.search);
-    let roomId = urlParams.get('szoba');
-    if (!roomId) {
-      roomId = Math.random().toString(36).substring(2, 8);
-      window.history.replaceState({}, '', `?szoba=${roomId}`);
+    // =========================================================================
+    // 0. KÖZÖS SEGÉDFÜGGVÉNYEK ÉS ÁLLAPOT
+    // =========================================================================
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const colors = {
+        info: 'bg-slate-800 border-slate-700 text-slate-100',
+        success: 'bg-emerald-900/95 border-emerald-500/50 text-emerald-100',
+        warning: 'bg-amber-900/95 border-amber-500/50 text-amber-100',
+        error: 'bg-rose-900/95 border-rose-500/50 text-rose-100'
+      };
+      toast.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-2xl text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
     }
 
-    document.getElementById('copyBtn').onclick = () => {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link vágólapra másolva! Küldd el a barátodnak.');
+    function copyToClipboard(text, successMsg) {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (ok) {
+          showToast(successMsg, 'success');
+          return;
+        }
+      } catch (e) {}
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+          .then(() => showToast(successMsg, 'success'))
+          .catch(() => showToast('A másolás nem sikerült.', 'error'));
+      }
+    }
+
+    function escapeHTML(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    const memoryStorageFallback = new Map();
+
+    function safeStorageGet(key) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch (e) {
+        return memoryStorageFallback.has(key) ? memoryStorageFallback.get(key) : null;
+      }
+    }
+
+    function safeStorageSet(key, value) {
+      memoryStorageFallback.set(key, String(value));
+      try {
+        window.localStorage.setItem(key, String(value));
+      } catch (e) {}
+    }
+
+    function safeUpdateRoomUrl(roomId) {
+      try {
+        if (window.location.protocol === 'blob:' || window.location.origin === 'null') {
+          return;
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.set('szoba', roomId);
+        window.history.replaceState({}, '', url.toString());
+      } catch (e) {}
+    }
+
+    function getShareableRoomUrl(roomId) {
+      try {
+        const rawHref = window.location.href.startsWith('blob:')
+          ? window.location.href.slice(5)
+          : window.location.href;
+        const url = new URL(rawHref);
+        url.searchParams.set('szoba', roomId);
+        return url.toString();
+      } catch (e) {
+        return `?szoba=${roomId}`;
+      }
+    }
+
+    let initialSearch = '';
+    try {
+      initialSearch = window.location.search;
+    } catch (e) {
+      initialSearch = '';
+    }
+
+    const urlParams = new URLSearchParams(initialSearch);
+    let currentRoomId = (urlParams.get('szoba') || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    if (!currentRoomId) {
+      currentRoomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      safeUpdateRoomUrl(currentRoomId);
+    }
+    document.getElementById('sharedRoomCodeDisplay').textContent = currentRoomId;
+
+    const NAME_STORAGE_KEY = 'barati_jatekterem_player_name';
+    let myName = safeStorageGet(NAME_STORAGE_KEY) || `Játékos_${selfId.slice(0, 4)}`;
+    document.getElementById('sharedNameInput').value = myName;
+
+    // Fülváltó (Tab rendszer)
+    let activeTab = 'chess';
+    const tabButtons = {
+      chess: document.getElementById('tabChess'),
+      blackjack: document.getElementById('tabBlackjack'),
+      sudoku: document.getElementById('tabSudoku')
+    };
+    const tabViews = {
+      chess: document.getElementById('viewChess'),
+      blackjack: document.getElementById('viewBlackjack'),
+      sudoku: document.getElementById('viewSudoku')
     };
 
-    const game = new Chess();
-    const room = joinRoom({ appId: 'barati-sakk-0ft-v1' }, roomId);
-    const [sendMove, getMove] = room.makeAction('move');
+    function switchTab(tabName) {
+      activeTab = tabName;
+      Object.keys(tabButtons).forEach((key) => {
+        const btn = tabButtons[key];
+        const view = tabViews[key];
+        const isSelected = key === tabName;
+        btn.setAttribute('aria-selected', String(isSelected));
+        if (isSelected) {
+          btn.className = 'flex-1 md:flex-initial px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-emerald-600 text-white shadow-md flex items-center justify-center gap-1.5 whitespace-nowrap';
+          view.classList.remove('hidden');
+        } else {
+          btn.className = 'flex-1 md:flex-initial px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1.5 whitespace-nowrap';
+          view.classList.add('hidden');
+        }
+      });
 
-    let myColor = null;
-    let selectedSquare = null;
-    let opponentJoined = false;
+      const sharedBar = document.getElementById('sharedP2PBar');
+      if (tabName === 'sudoku') {
+        sharedBar.classList.add('hidden');
+      } else {
+        sharedBar.classList.remove('hidden');
+      }
+    }
 
-    const statusEl = document.getElementById('status');
-    const substatusEl = document.getElementById('substatus');
-    const boardEl = document.getElementById('board');
+    tabButtons.chess.onclick = () => switchTab('chess');
+    tabButtons.blackjack.onclick = () => switchTab('blackjack');
+    tabButtons.sudoku.onclick = () => switchTab('sudoku');
 
-    // Mindkét színhez a telt bábukat használjuk, a színt és körvonalat a CSS adja
-    const PIECES = {
+    // Közös P2P sáv események
+    document.getElementById('sharedCopyLinkBtn').onclick = () => {
+      copyToClipboard(getShareableRoomUrl(currentRoomId), 'Meghívó link másolva a vágólapra!');
+    };
+
+    document.getElementById('sharedCopyCodeBtn').onclick = () => {
+      copyToClipboard(currentRoomId, `Szobakód másolva: ${currentRoomId}`);
+    };
+
+    function handleJoinRoom() {
+      const raw = document.getElementById('sharedJoinRoomInput').value;
+      const cleaned = raw.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+      if (!cleaned) {
+        showToast('Adj meg egy érvényes szobakódot!', 'warning');
+        return;
+      }
+      currentRoomId = cleaned;
+      document.getElementById('sharedRoomCodeDisplay').textContent = currentRoomId;
+      document.getElementById('sharedJoinRoomInput').value = '';
+      safeUpdateRoomUrl(currentRoomId);
+      connectToChessRoom(currentRoomId);
+      connectToBlackjackRoom(currentRoomId);
+      showToast(`Csatlakoztál a(z) ${currentRoomId} szobához.`, 'success');
+    }
+
+    document.getElementById('sharedJoinRoomBtn').onclick = handleJoinRoom;
+    document.getElementById('sharedJoinRoomInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleJoinRoom();
+    });
+
+    document.getElementById('sharedNameInput').addEventListener('input', (e) => {
+      const val = e.target.value.trim().slice(0, 16);
+      myName = val || `Játékos_${selfId.slice(0, 4)}`;
+      safeStorageSet(NAME_STORAGE_KEY, myName);
+      if (sendChessPacket && chessOpponentId) {
+        sendChessPacket({ type: 'hello', name: myName });
+      }
+      renderChessAll();
+      updateBlackjackPlayerName(myName);
+    });
+
+    // =========================================================================
+    // 1. MULTIPLAYER SAKK LOGIKA
+    // =========================================================================
+
+    const CHESS_PIECES = {
       w: { k: '♚\uFE0E', q: '♛\uFE0E', r: '♜\uFE0E', b: '♝\uFE0E', n: '♞\uFE0E', p: '♟\uFE0E' },
       b: { k: '♚\uFE0E', q: '♛\uFE0E', r: '♜\uFE0E', b: '♝\uFE0E', n: '♞\uFE0E', p: '♟\uFE0E' }
     };
 
-    statusEl.textContent = 'Várakozás a barátodra...';
-    substatusEl.textContent = `Szobakód: ${roomId}`;
+    const chessGame = new Chess();
+    let chessRoom = null;
+    let sendChessPacket = null;
+    let chessOpponentId = null;
+    let chessOpponentName = 'Ellenfél';
+    let chessMyColor = null;
+    let chessSoloMode = false;
+    let chessSelectedSquare = null;
+    let chessLastMove = null;
+    let chessPendingPromotion = null;
+    let chessResignedBy = null;
 
-    room.onPeerJoin((peerId) => {
-      if (opponentJoined) return;
-      opponentJoined = true;
-
-      myColor = selfId < peerId ? 'w' : 'b';
-      game.reset();
-      selectedSquare = null;
-
-      substatusEl.textContent = myColor === 'w' ? 'Te vagy a VILÁGOS' : 'Te vagy a SÖTÉT';
-      updateStatus();
-      renderBoard();
-    });
-
-    room.onPeerLeave(() => {
-      opponentJoined = false;
-      statusEl.textContent = 'Az ellenfél kilépett.';
-    });
-
-    getMove((move) => {
-      game.move(move);
-      selectedSquare = null;
-      updateStatus();
-      renderBoard();
-    });
-
-    function handleSquareClick(square) {
-      if (!opponentJoined || game.isGameOver()) return;
-      if (game.turn() !== myColor) return;
-
-      if (selectedSquare) {
+    function connectToChessRoom(roomId) {
+      if (chessRoom) {
         try {
-          const moveData = { from: selectedSquare, to: square, promotion: 'q' };
-          game.move(moveData);
-          
-          selectedSquare = null;
-          sendMove(moveData);
-          updateStatus();
-          renderBoard();
-          return;
+          chessRoom.leave();
         } catch (e) {}
+        chessRoom = null;
       }
 
-      const piece = game.get(square);
-      if (piece && piece.color === myColor) {
-        selectedSquare = square;
-      } else {
-        selectedSquare = null;
+      chessGame.reset();
+      chessOpponentId = null;
+      chessOpponentName = 'Ellenfél';
+      chessMyColor = null;
+      chessSelectedSquare = null;
+      chessLastMove = null;
+      chessPendingPromotion = null;
+      chessResignedBy = null;
+      chessSoloMode = false;
+
+      try {
+        chessRoom = joinRoom({ appId: 'barati-jatek-sakk-v1' }, roomId);
+        const [sendPkt, getPkt] = chessRoom.makeAction('chess');
+        sendChessPacket = sendPkt;
+
+        chessRoom.onPeerJoin((peerId) => {
+          if (chessOpponentId && chessOpponentId !== peerId) return;
+          chessOpponentId = peerId;
+          chessSoloMode = false;
+          chessGame.reset();
+          chessSelectedSquare = null;
+          chessLastMove = null;
+          chessPendingPromotion = null;
+          chessResignedBy = null;
+          chessMyColor = selfId < peerId ? 'w' : 'b';
+
+          sendChessPacket({ type: 'hello', name: myName });
+          renderChessAll();
+          showToast('Ellenfél csatlakozott a sakkpartihoz!', 'success');
+        });
+
+        chessRoom.onPeerLeave((peerId) => {
+          if (peerId === chessOpponentId) {
+            chessOpponentId = null;
+            renderChessAll();
+            showToast('Az ellenfél kilépett a szobából.', 'warning');
+          }
+        });
+
+        getPkt((data, peerId) => {
+          if (!data || typeof data !== 'object') return;
+          if (!chessOpponentId) {
+            chessOpponentId = peerId;
+            chessSoloMode = false;
+            chessMyColor = selfId < peerId ? 'w' : 'b';
+          }
+          if (peerId !== chessOpponentId) return;
+
+          if (data.type === 'hello') {
+            chessOpponentName = String(data.name || 'Ellenfél').slice(0, 16);
+            renderChessAll();
+          } else if (data.type === 'move' && data.move) {
+            try {
+              const applied = chessGame.move(data.move);
+              if (applied) {
+                chessLastMove = { from: applied.from, to: applied.to };
+                chessSelectedSquare = null;
+                chessPendingPromotion = null;
+                renderChessAll();
+              }
+            } catch (e) {}
+          } else if (data.type === 'resign') {
+            chessResignedBy = chessMyColor === 'w' ? 'b' : 'w';
+            renderChessAll();
+            showToast('Az ellenfél feladta a partit!', 'success');
+          } else if (data.type === 'rematch') {
+            chessGame.reset();
+            chessSelectedSquare = null;
+            chessLastMove = null;
+            chessPendingPromotion = null;
+            chessResignedBy = null;
+            if (chessMyColor) {
+              chessMyColor = chessMyColor === 'w' ? 'b' : 'w';
+            }
+            renderChessAll();
+            showToast('Új parti indult felcserélt színekkel!', 'info');
+          }
+        });
+      } catch (err) {
+        console.warn('Sakk P2P kapcsolat korlátozva ebben a környezetben:', err);
+        chessRoom = null;
+        sendChessPacket = null;
+        chessSoloMode = true;
+        renderChessAll();
+        return;
       }
-      renderBoard();
+
+      renderChessAll();
     }
 
-    function updateStatus() {
-      if (game.isCheckmate()) {
-        statusEl.textContent = game.turn() === myColor ? 'Matt! Vesztettél.' : 'Sakk-matt! Nyertél!';
-      } else if (game.isDraw()) {
-        statusEl.textContent = 'Döntetlen!';
-      } else {
-        const turnText = game.turn() === myColor ? 'Te következel!' : 'Az ellenfél lép...';
-        const checkText = game.isCheck() ? ' (SAKK!)' : '';
-        statusEl.textContent = turnText + checkText;
+    function canMakeChessMove() {
+      if (chessResignedBy || chessGame.isGameOver()) return false;
+      if (chessSoloMode) return true;
+      if (!chessOpponentId || !chessMyColor) return false;
+      return chessGame.turn() === chessMyColor;
+    }
+
+    function executeChessMove(moveObj) {
+      try {
+        const applied = chessGame.move(moveObj);
+        if (!applied) return false;
+
+        chessLastMove = { from: applied.from, to: applied.to };
+        chessSelectedSquare = null;
+        chessPendingPromotion = null;
+
+        if (!chessSoloMode && sendChessPacket && chessOpponentId) {
+          sendChessPacket({ type: 'move', move: moveObj });
+        }
+
+        renderChessAll();
+        return true;
+      } catch (e) {
+        return false;
       }
     }
 
-    function renderBoard() {
+    function openChessPromotionModal(fromSq, toSq, color) {
+      chessPendingPromotion = { from: fromSq, to: toSq };
+      const modal = document.getElementById('chessPromotionModal');
+      const choicesEl = document.getElementById('chessPromotionChoices');
+      choicesEl.innerHTML = '';
+
+      const options = [
+        { type: 'q', label: 'Vezér' },
+        { type: 'r', label: 'Bástya' },
+        { type: 'b', label: 'Futó' },
+        { type: 'n', label: 'Huszár' }
+      ];
+
+      options.forEach((opt) => {
+        const btn = document.createElement('button');
+        btn.className = 'p-2.5 rounded-xl bg-slate-800 hover:bg-emerald-600 border border-slate-700 flex flex-col items-center justify-center gap-1 transition';
+        btn.innerHTML = `
+          <span class="text-3xl ${color === 'w' ? 'chess-piece-w' : 'chess-piece-b'}">${CHESS_PIECES[color][opt.type]}</span>
+          <span class="text-[11px] font-semibold text-slate-200">${opt.label}</span>
+        `;
+        btn.onclick = () => {
+          executeChessMove({ from: fromSq, to: toSq, promotion: opt.type });
+          modal.classList.add('hidden');
+        };
+        choicesEl.appendChild(btn);
+      });
+
+      modal.classList.remove('hidden');
+    }
+
+    document.getElementById('chessCancelPromotionBtn').onclick = () => {
+      chessPendingPromotion = null;
+      document.getElementById('chessPromotionModal').classList.add('hidden');
+      renderChessBoard();
+    };
+
+    function handleChessSquareClick(square) {
+      if (!canMakeChessMove()) return;
+
+      const activeColor = chessSoloMode ? chessGame.turn() : chessMyColor;
+
+      if (chessSelectedSquare) {
+        const legalMoves = chessGame.moves({ square: chessSelectedSquare, verbose: true });
+        const matchedMoves = legalMoves.filter((m) => m.to === square);
+
+        if (matchedMoves.length > 0) {
+          if (matchedMoves.some((m) => m.promotion)) {
+            openChessPromotionModal(chessSelectedSquare, square, activeColor);
+            return;
+          }
+          executeChessMove({ from: chessSelectedSquare, to: square });
+          return;
+        }
+      }
+
+      const piece = chessGame.get(square);
+      if (piece && piece.color === activeColor) {
+        chessSelectedSquare = chessSelectedSquare === square ? null : square;
+      } else {
+        chessSelectedSquare = null;
+      }
+      renderChessBoard();
+    }
+
+    function renderChessBoard() {
+      const boardEl = document.getElementById('chessBoard');
       boardEl.innerHTML = '';
-      const boardState = game.board();
-      
-      const legalTargets = selectedSquare
-        ? game.moves({ square: selectedSquare, verbose: true }).map(m => m.to)
+      const boardState = chessGame.board();
+      const flipBoard = !chessSoloMode && chessMyColor === 'b';
+
+      const legalMoves = chessSelectedSquare
+        ? chessGame.moves({ square: chessSelectedSquare, verbose: true })
         : [];
+      const legalTargetMap = new Map();
+      legalMoves.forEach((m) => {
+        legalTargetMap.set(m.to, Boolean(m.captured));
+      });
+
+      // Sakkban álló király mezőjének megkeresése
+      let kingInCheckSquare = null;
+      if (chessGame.isCheck()) {
+        const turnColor = chessGame.turn();
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            const p = boardState[r][c];
+            if (p && p.type === 'k' && p.color === turnColor) {
+              kingInCheckSquare = String.fromCharCode(97 + c) + (8 - r);
+            }
+          }
+        }
+      }
+
+      const rows = flipBoard ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+      const cols = flipBoard ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+
+      for (const r of rows) {
+        for (const c of cols) {
+          const sqDiv = document.createElement('div');
+          const isLight = (r + c) % 2 === 0;
+          const squareName = String.fromCharCode(97 + c) + (8 - r);
+
+          sqDiv.className = `chess-square ${isLight ? 'chess-light' : 'chess-dark'}`;
+          if (chessSelectedSquare === squareName) sqDiv.classList.add('chess-selected');
+          if (chessLastMove && (chessLastMove.from === squareName || chessLastMove.to === squareName)) {
+            sqDiv.classList.add('chess-last-move');
+          }
+          if (kingInCheckSquare === squareName) {
+            sqDiv.classList.add('chess-check');
+          }
+          if (legalTargetMap.has(squareName)) {
+            sqDiv.classList.add(legalTargetMap.get(squareName) ? 'chess-capture' : 'chess-hint');
+          }
+
+          const piece = boardState[r][c];
+          if (piece) {
+            const span = document.createElement('span');
+            span.textContent = CHESS_PIECES[piece.color][piece.type];
+            span.className = piece.color === 'w' ? 'chess-piece-w' : 'chess-piece-b';
+            sqDiv.appendChild(span);
+          }
+
+          sqDiv.onclick = () => handleChessSquareClick(squareName);
+          boardEl.appendChild(sqDiv);
+        }
+      }
+    }
+
+    function renderChessMoveList() {
+      const listEl = document.getElementById('chessMoveList');
+      const countBadge = document.getElementById('chessMoveCountBadge');
+      const history = chessGame.history();
+      countBadge.textContent = `${history.length} lépés`;
+
+      if (history.length === 0) {
+        listEl.innerHTML = '<div class="text-slate-500 italic text-center py-8">Még nem történt lépés.</div>';
+        return;
+      }
+
+      let html = '';
+      for (let i = 0; i < history.length; i += 2) {
+        const moveNum = Math.floor(i / 2) + 1;
+        const whiteMove = escapeHTML(history[i] || '');
+        const blackMove = escapeHTML(history[i + 1] || '');
+        html += `
+          <div class="grid grid-cols-12 px-2 py-1 rounded hover:bg-slate-900">
+            <span class="col-span-2 text-slate-500">${moveNum}.</span>
+            <span class="col-span-5 text-slate-100 font-semibold">${whiteMove}</span>
+            <span class="col-span-5 text-slate-300 font-semibold">${blackMove}</span>
+          </div>
+        `;
+      }
+      listEl.innerHTML = html;
+      listEl.scrollTop = listEl.scrollHeight;
+    }
+
+    function renderChessAll() {
+      const dot = document.getElementById('chessConnectionDot');
+      const statusText = document.getElementById('chessStatusText');
+      const subStatusText = document.getElementById('chessSubStatusText');
+      const roleBadge = document.getElementById('chessRoleBadge');
+      const soloBtn = document.getElementById('chessSoloToggleBtn');
+      const resignBtn = document.getElementById('chessResignBtn');
+
+      const topIcon = document.getElementById('chessTopPlayerIcon');
+      const topName = document.getElementById('chessTopPlayerName');
+      const topInd = document.getElementById('chessTopTurnIndicator');
+      const bottomIcon = document.getElementById('chessBottomPlayerIcon');
+      const bottomName = document.getElementById('chessBottomPlayerName');
+      const bottomInd = document.getElementById('chessBottomTurnIndicator');
+
+      const turn = chessGame.turn();
+
+      if (chessSoloMode) {
+        dot.className = 'w-3 h-3 rounded-full bg-indigo-400 shrink-0';
+        roleBadge.textContent = 'Gyakorló mód (1 gép)';
+        soloBtn.innerHTML = '<span>🌐</span><span>Online módra váltás</span>';
+        topIcon.textContent = '♚';
+        topName.textContent = 'Sötét (Gyakorlás)';
+        bottomIcon.textContent = '♔';
+        bottomName.textContent = `Világos (${myName})`;
+        topInd.classList.toggle('hidden', turn !== 'b' || chessGame.isGameOver() || Boolean(chessResignedBy));
+        bottomInd.classList.toggle('hidden', turn !== 'w' || chessGame.isGameOver() || Boolean(chessResignedBy));
+      } else if (chessOpponentId) {
+        dot.className = 'w-3 h-3 rounded-full bg-emerald-400 shrink-0';
+        roleBadge.textContent = chessMyColor === 'w' ? 'Te: VILÁGOS ♔' : 'Te: SÖTÉT ♚';
+        soloBtn.innerHTML = '<span>♟️</span><span>Gyakorlás egyedül</span>';
+
+        if (chessMyColor === 'b') {
+          topIcon.textContent = '♔';
+          topName.textContent = `Világos (${chessOpponentName})`;
+          bottomIcon.textContent = '♚';
+          bottomName.textContent = `Sötét (${myName} — Te)`;
+          topInd.classList.toggle('hidden', turn !== 'w' || chessGame.isGameOver() || Boolean(chessResignedBy));
+          bottomInd.classList.toggle('hidden', turn !== 'b' || chessGame.isGameOver() || Boolean(chessResignedBy));
+        } else {
+          topIcon.textContent = '♚';
+          topName.textContent = `Sötét (${chessOpponentName})`;
+          bottomIcon.textContent = '♔';
+          bottomName.textContent = `Világos (${myName} — Te)`;
+          topInd.classList.toggle('hidden', turn !== 'b' || chessGame.isGameOver() || Boolean(chessResignedBy));
+          bottomInd.classList.toggle('hidden', turn !== 'w' || chessGame.isGameOver() || Boolean(chessResignedBy));
+        }
+      } else {
+        dot.className = 'w-3 h-3 rounded-full bg-amber-400 animate-pulse shrink-0';
+        roleBadge.textContent = 'Várakozás ellenfélre';
+        soloBtn.innerHTML = '<span>♟️</span><span>Gyakorlás egyedül</span>';
+        topIcon.textContent = '♚';
+        topName.textContent = 'Sötét (Várakozás...)';
+        bottomIcon.textContent = '♔';
+        bottomName.textContent = `Világos (${myName})`;
+        topInd.classList.add('hidden');
+        bottomInd.classList.add('hidden');
+      }
+
+      // Állapotszöveg meghatározása
+      if (chessResignedBy) {
+        const winnerText = chessResignedBy === 'w' ? 'Sötét nyert (Világos feladta).' : 'Világos nyert (Sötét feladta).';
+        statusText.textContent = `Parti vége — ${winnerText}`;
+        subStatusText.textContent = 'Nyomj az Új parti / Visszavágó gombra a folytatáshoz.';
+      } else if (chessGame.isCheckmate()) {
+        const winner = turn === 'w' ? 'Sötét' : 'Világos';
+        statusText.textContent = `Sakk-matt! ${winner} győzött!`;
+        subStatusText.textContent = 'Gratulálunk! Indíthatsz visszavágót.';
+      } else if (chessGame.isStalemate()) {
+        statusText.textContent = 'Döntetlen (Patt)!';
+        subStatusText.textContent = 'Nincs több szabályos lépés.';
+      } else if (chessGame.isDraw()) {
+        statusText.textContent = 'Döntetlen!';
+        subStatusText.textContent = 'Anyagelégtelenség vagy lépésismétlés.';
+      } else if (chessSoloMode) {
+        const who = turn === 'w' ? 'Világos' : 'Sötét';
+        const chk = chessGame.isCheck() ? ' — SAKK!' : '';
+        statusText.textContent = `Gyakorló mód: ${who} következik${chk}`;
+        subStatusText.textContent = 'Mindkét színnel léphetsz ugyanazon a táblán.';
+      } else if (!chessOpponentId) {
+        statusText.textContent = 'Várakozás a barátodra...';
+        subStatusText.textContent = `Szobakód: ${currentRoomId} — Másold ki a meghívó linket!`;
+      } else {
+        const isMyTurn = turn === chessMyColor;
+        const chk = chessGame.isCheck() ? ' (SAKK!)' : '';
+        statusText.textContent = isMyTurn ? `Te következel!${chk}` : `${chessOpponentName} gondolkodik...${chk}`;
+        subStatusText.textContent = `Élő P2P kapcsolat • Szobakód: ${currentRoomId}`;
+      }
+
+      resignBtn.disabled = chessGame.isGameOver() || Boolean(chessResignedBy) || (!chessSoloMode && !chessOpponentId);
+
+      renderChessBoard();
+      renderChessMoveList();
+    }
+
+    document.getElementById('chessSoloToggleBtn').onclick = () => {
+      chessSoloMode = !chessSoloMode;
+      chessSelectedSquare = null;
+      if (chessSoloMode) {
+        showToast('Egyéni gyakorló mód bekapcsolva.', 'info');
+      } else {
+        showToast('Visszaváltottál online módra.', 'info');
+      }
+      renderChessAll();
+    };
+
+    document.getElementById('chessResignBtn').onclick = () => {
+      if (chessGame.isGameOver() || chessResignedBy) return;
+      if (chessSoloMode) {
+        chessResignedBy = chessGame.turn();
+      } else if (chessOpponentId && chessMyColor) {
+        chessResignedBy = chessMyColor;
+        if (sendChessPacket) sendChessPacket({ type: 'resign' });
+      }
+      renderChessAll();
+    };
+
+    document.getElementById('chessRematchBtn').onclick = () => {
+      chessGame.reset();
+      chessSelectedSquare = null;
+      chessLastMove = null;
+      chessPendingPromotion = null;
+      chessResignedBy = null;
+      document.getElementById('chessPromotionModal').classList.add('hidden');
+
+      if (!chessSoloMode && chessOpponentId && chessMyColor) {
+        chessMyColor = chessMyColor === 'w' ? 'b' : 'w';
+        if (sendChessPacket) sendChessPacket({ type: 'rematch' });
+        showToast('Új parti indult felcserélt színekkel!', 'success');
+      } else {
+        showToast('Új sakkparti indult!', 'info');
+      }
+      renderChessAll();
+    };
+
+    // =========================================================================
+    // 2. MULTIPLAYER BLACKJACK LOGIKA (P2P HOST-AUTHORITATIVE)
+    // =========================================================================
+
+    const BJ_CHIPS_STORAGE_KEY = 'barati_jatekterem_bj_chips';
+    let savedChips = parseInt(safeStorageGet(BJ_CHIPS_STORAGE_KEY) || '1000', 10);
+    if (isNaN(savedChips) || savedChips < 0) savedChips = 1000;
+
+    let bjRoom = null;
+    let sendBjAction = null;
+    let sendBjState = null;
+    let bjIsHost = false;
+    let bjHostId = null;
+    let bjConnectedPeers = new Set();
+    let hostState = null;
+    let clientViewState = null;
+
+    function createShoe(numDecks = 6) {
+      const suits = ['♠', '♥', '♦', '♣'];
+      const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+      const deck = [];
+      for (let d = 0; d < numDecks; d++) {
+        for (const suit of suits) {
+          for (const rank of ranks) {
+            deck.push({ suit, rank });
+          }
+        }
+      }
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    function drawCard(shoe) {
+      if (!shoe || shoe.length < 20) {
+        const fresh = createShoe(6);
+        shoe.splice(0, shoe.length, ...fresh);
+      }
+      return shoe.pop();
+    }
+
+    function calculateHandValue(cards) {
+      let total = 0;
+      let aces = 0;
+      for (const c of cards) {
+        if (c.hidden) continue;
+        if (c.rank === 'A') {
+          aces += 1;
+          total += 11;
+        } else if (['K', 'Q', 'J'].includes(c.rank)) {
+          total += 10;
+        } else {
+          total += parseInt(c.rank, 10);
+        }
+      }
+      while (total > 21 && aces > 0) {
+        total -= 10;
+        aces -= 1;
+      }
+      const isBlackjack = cards.length === 2 && total === 21;
+      return { total, isBlackjack };
+    }
+
+    function electBlackjackHost() {
+      const allIds = [selfId, ...Array.from(bjConnectedPeers)].sort();
+      const chosenHost = allIds[0];
+      const wasHost = bjIsHost;
+      bjHostId = chosenHost;
+      bjIsHost = chosenHost === selfId;
+
+      if (bjIsHost && !wasHost) {
+        if (!hostState) {
+          hostState = {
+            phase: 'BETTING',
+            shoe: createShoe(6),
+            dealerCards: [],
+            players: {
+              [selfId]: {
+                id: selfId,
+                name: myName,
+                chips: savedChips,
+                bet: 0,
+                betConfirmed: false,
+                cards: [],
+                status: 'BETTING',
+                resultText: ''
+              }
+            },
+            turnOrder: [],
+            currentTurnIndex: 0,
+            message: 'Helyezzétek el a téteket!'
+          };
+        }
+        broadcastAndRenderBj();
+      } else if (!bjIsHost && sendBjAction) {
+        sendBjAction({ type: 'join', name: myName, chips: savedChips }, bjHostId);
+      }
+    }
+
+    function broadcastAndRenderBj() {
+      if (bjIsHost && hostState) {
+        const publicState = {
+          phase: hostState.phase,
+          dealerCards: hostState.dealerCards.map((c, idx) => {
+            if (hostState.phase === 'PLAYING' && idx === 1) {
+              return { hidden: true };
+            }
+            return c;
+          }),
+          players: hostState.players,
+          turnOrder: hostState.turnOrder,
+          currentTurnIndex: hostState.currentTurnIndex,
+          message: hostState.message
+        };
+        clientViewState = publicState;
+        if (sendBjState) {
+          sendBjState(publicState);
+        }
+      }
+
+      if (clientViewState && clientViewState.players && clientViewState.players[selfId]) {
+        const me = clientViewState.players[selfId];
+        if (typeof me.chips === 'number') {
+          savedChips = me.chips;
+          safeStorageSet(BJ_CHIPS_STORAGE_KEY, savedChips);
+        }
+      }
+
+      renderBlackjack();
+    }
+
+    function hostCheckAllBetsConfirmed() {
+      if (!bjIsHost || !hostState || hostState.phase !== 'BETTING') return;
+      const plist = Object.values(hostState.players);
+      if (plist.length === 0) return;
+      const allConfirmed = plist.every((p) => p.betConfirmed && p.bet > 0);
+      if (allConfirmed) {
+        hostStartDealing();
+      } else {
+        broadcastAndRenderBj();
+      }
+    }
+
+    function hostStartDealing() {
+      if (!bjIsHost || !hostState) return;
+      const activePlayers = Object.values(hostState.players).filter((p) => p.bet > 0);
+      if (activePlayers.length === 0) {
+        showToast('Legalább egy játékosnak tétet kell tennie!', 'warning');
+        return;
+      }
+
+      hostState.phase = 'PLAYING';
+      hostState.dealerCards = [drawCard(hostState.shoe), drawCard(hostState.shoe)];
+      hostState.turnOrder = [];
+
+      Object.values(hostState.players).forEach((p) => {
+        if (p.bet > 0) {
+          p.cards = [drawCard(hostState.shoe), drawCard(hostState.shoe)];
+          const evalHand = calculateHandValue(p.cards);
+          if (evalHand.isBlackjack) {
+            p.status = 'BLACKJACK';
+            p.resultText = 'BLACKJACK!';
+          } else {
+            p.status = 'PLAYING';
+            p.resultText = '';
+            hostState.turnOrder.push(p.id);
+          }
+        } else {
+          p.cards = [];
+          p.status = 'SITTING_OUT';
+          p.resultText = 'Kimarad ebből a körből';
+        }
+      });
+
+      hostState.currentTurnIndex = 0;
+      const dealerEval = calculateHandValue(hostState.dealerCards);
+      if (dealerEval.isBlackjack || hostState.turnOrder.length === 0) {
+        hostFinishRound();
+      } else {
+        const currentPid = hostState.turnOrder[0];
+        const currentPlayer = hostState.players[currentPid];
+        hostState.message = `${currentPlayer ? currentPlayer.name : 'Játékos'} következik!`;
+        broadcastAndRenderBj();
+      }
+    }
+
+    function hostAdvanceTurn() {
+      if (!bjIsHost || !hostState) return;
+      hostState.currentTurnIndex += 1;
+      if (hostState.currentTurnIndex >= hostState.turnOrder.length) {
+        hostFinishRound();
+      } else {
+        const nextId = hostState.turnOrder[hostState.currentTurnIndex];
+        const nextP = hostState.players[nextId];
+        hostState.message = `${nextP ? nextP.name : 'Játékos'} következik!`;
+        broadcastAndRenderBj();
+      }
+    }
+
+    function hostFinishRound() {
+      if (!bjIsHost || !hostState) return;
+      hostState.phase = 'RESULT';
+
+      const anyNeedsDealer = Object.values(hostState.players).some(
+        (p) => p.bet > 0 && p.status !== 'BUST' && p.status !== 'BLACKJACK'
+      );
+
+      if (anyNeedsDealer) {
+        while (calculateHandValue(hostState.dealerCards).total < 17) {
+          hostState.dealerCards.push(drawCard(hostState.shoe));
+        }
+      }
+
+      const dealerEval = calculateHandValue(hostState.dealerCards);
+      const dealerTotal = dealerEval.total;
+      const dealerBust = dealerTotal > 21;
+
+      Object.values(hostState.players).forEach((p) => {
+        if (p.bet <= 0) return;
+        const pEval = calculateHandValue(p.cards);
+
+        if (p.status === 'BUST') {
+          p.resultText = `Besokallt (${pEval.total}) — -${p.bet} 🪙`;
+        } else if (p.status === 'BLACKJACK') {
+          if (dealerEval.isBlackjack) {
+            p.chips += p.bet;
+            p.resultText = 'Push (Mindkettő Blackjack)';
+          } else {
+            const winAmount = Math.floor(p.bet * 2.5);
+            p.chips += winAmount;
+            p.resultText = `BLACKJACK! +${winAmount - p.bet} 🪙`;
+          }
+        } else if (dealerEval.isBlackjack) {
+          p.resultText = `Osztó Blackjack — -${p.bet} 🪙`;
+        } else if (dealerBust || pEval.total > dealerTotal) {
+          p.chips += p.bet * 2;
+          p.resultText = `Nyertél! (${pEval.total} vs ${dealerTotal}) +${p.bet} 🪙`;
+        } else if (pEval.total === dealerTotal) {
+          p.chips += p.bet;
+          p.resultText = `Döntetlen / Push (${pEval.total})`;
+        } else {
+          p.resultText = `Vesztettél (${pEval.total} vs ${dealerTotal}) — -${p.bet} 🪙`;
+        }
+      });
+
+      hostState.message = dealerBust
+        ? `Az Osztó besokallt (${dealerTotal})!`
+        : `Kör vége — Osztó eredménye: ${dealerTotal}`;
+      broadcastAndRenderBj();
+    }
+
+    function processBjActionOnHost(playerId, action) {
+      if (!bjIsHost || !hostState) return;
+
+      if (action.type === 'join') {
+        if (!hostState.players[playerId]) {
+          hostState.players[playerId] = {
+            id: playerId,
+            name: String(action.name || `Játékos_${playerId.slice(0, 4)}`).slice(0, 16),
+            chips: typeof action.chips === 'number' && action.chips >= 0 ? action.chips : 1000,
+            bet: 0,
+            betConfirmed: false,
+            cards: [],
+            status: hostState.phase === 'BETTING' ? 'BETTING' : 'SITTING_OUT',
+            resultText: ''
+          };
+        }
+        broadcastAndRenderBj();
+        return;
+      }
+
+      const p = hostState.players[playerId];
+      if (!p) return;
+
+      if (action.type === 'rename') {
+        p.name = String(action.name || p.name).slice(0, 16);
+        broadcastAndRenderBj();
+        return;
+      }
+
+      if (action.type === 'refill') {
+        if (p.chips === 0 && p.bet === 0) {
+          p.chips = 1000;
+          broadcastAndRenderBj();
+        }
+        return;
+      }
+
+      if (hostState.phase === 'BETTING') {
+        if (action.type === 'addBet' && !p.betConfirmed) {
+          const amt = Number(action.amount) || 0;
+          if (amt > 0 && p.chips >= amt) {
+            p.chips -= amt;
+            p.bet += amt;
+            broadcastAndRenderBj();
+          }
+        } else if (action.type === 'clearBet' && !p.betConfirmed) {
+          p.chips += p.bet;
+          p.bet = 0;
+          broadcastAndRenderBj();
+        } else if (action.type === 'confirmBet' && p.bet > 0) {
+          p.betConfirmed = true;
+          hostCheckAllBetsConfirmed();
+        } else if (action.type === 'forceDeal' && playerId === selfId) {
+          hostStartDealing();
+        }
+        return;
+      }
+
+      if (hostState.phase === 'PLAYING') {
+        const activeId = hostState.turnOrder[hostState.currentTurnIndex];
+        if (playerId !== activeId || p.status !== 'PLAYING') return;
+
+        if (action.type === 'hit') {
+          p.cards.push(drawCard(hostState.shoe));
+          const ev = calculateHandValue(p.cards);
+          if (ev.total > 21) {
+            p.status = 'BUST';
+            p.resultText = 'Besokallt!';
+            hostAdvanceTurn();
+          } else if (ev.total === 21) {
+            p.status = 'STOOD';
+            hostAdvanceTurn();
+          } else {
+            broadcastAndRenderBj();
+          }
+        } else if (action.type === 'stand') {
+          p.status = 'STOOD';
+          hostAdvanceTurn();
+        } else if (action.type === 'double') {
+          if (p.cards.length === 2 && p.chips >= p.bet) {
+            p.chips -= p.bet;
+            p.bet *= 2;
+            p.cards.push(drawCard(hostState.shoe));
+            const ev = calculateHandValue(p.cards);
+            p.status = ev.total > 21 ? 'BUST' : 'STOOD';
+            if (ev.total > 21) p.resultText = 'Besokallt!';
+            hostAdvanceTurn();
+          }
+        }
+        return;
+      }
+
+      if (hostState.phase === 'RESULT' && action.type === 'newRound') {
+        hostState.phase = 'BETTING';
+        hostState.dealerCards = [];
+        hostState.turnOrder = [];
+        hostState.currentTurnIndex = 0;
+        hostState.message = 'Helyezzétek el a téteket a következő körhöz!';
+
+        Object.values(hostState.players).forEach((pl) => {
+          pl.bet = 0;
+          pl.betConfirmed = false;
+          pl.cards = [];
+          pl.status = 'BETTING';
+          pl.resultText = '';
+        });
+        broadcastAndRenderBj();
+      }
+    }
+
+    function dispatchBjAction(action) {
+      if (bjIsHost) {
+        processBjActionOnHost(selfId, action);
+      } else if (sendBjAction && bjHostId) {
+        sendBjAction(action, bjHostId);
+      }
+    }
+
+    function updateBlackjackPlayerName(newName) {
+      dispatchBjAction({ type: 'rename', name: newName });
+    }
+
+    function connectToBlackjackRoom(roomId) {
+      if (bjRoom) {
+        try {
+          bjRoom.leave();
+        } catch (e) {}
+        bjRoom = null;
+      }
+
+      bjIsHost = false;
+      bjHostId = null;
+      bjConnectedPeers.clear();
+      hostState = null;
+      clientViewState = null;
+
+      try {
+        bjRoom = joinRoom({ appId: 'barati-jatek-blackjack-v1' }, roomId);
+        const [sendAct, getAct] = bjRoom.makeAction('bjAction');
+        const [sendSt, getSt] = bjRoom.makeAction('bjState');
+        sendBjAction = sendAct;
+        sendBjState = sendSt;
+
+        bjRoom.onPeerJoin((peerId) => {
+          bjConnectedPeers.add(peerId);
+          electBlackjackHost();
+          if (bjIsHost && hostState) {
+            broadcastAndRenderBj();
+          }
+        });
+
+        bjRoom.onPeerLeave((peerId) => {
+          bjConnectedPeers.delete(peerId);
+          if (bjIsHost && hostState && hostState.players[peerId]) {
+            delete hostState.players[peerId];
+            broadcastAndRenderBj();
+          } else if (peerId === bjHostId) {
+            electBlackjackHost();
+          }
+        });
+
+        getAct((action, peerId) => {
+          if (bjIsHost && action && typeof action === 'object') {
+            processBjActionOnHost(peerId, action);
+          }
+        });
+
+        getSt((state, peerId) => {
+          if (!bjIsHost && state && typeof state === 'object') {
+            bjHostId = peerId;
+            clientViewState = state;
+            if (state.players && state.players[selfId]) {
+              savedChips = state.players[selfId].chips;
+              safeStorageSet(BJ_CHIPS_STORAGE_KEY, savedChips);
+            }
+            renderBlackjack();
+          }
+        });
+
+        electBlackjackHost();
+      } catch (err) {
+        console.warn('Blackjack P2P kapcsolat korlátozva ebben a környezetben:', err);
+        bjRoom = null;
+        sendBjAction = null;
+        sendBjState = null;
+        bjIsHost = true;
+        bjHostId = selfId;
+        hostState = {
+          phase: 'BETTING',
+          shoe: createShoe(6),
+          dealerCards: [],
+          players: {
+            [selfId]: {
+              id: selfId,
+              name: myName,
+              chips: savedChips,
+              bet: 0,
+              betConfirmed: false,
+              cards: [],
+              status: 'BETTING',
+              resultText: ''
+            }
+          },
+          turnOrder: [],
+          currentTurnIndex: 0,
+          message: 'Helyi gyakorló mód — Helyezd el a tétedet!'
+        };
+        broadcastAndRenderBj();
+      }
+    }
+
+    function renderPlayingCardHTML(card) {
+      if (card.hidden) {
+        return '<div class="playing-card card-back"></div>';
+      }
+      const isRed = card.suit === '♥' || card.suit === '♦';
+      const colorClass = isRed ? 'text-rose-600' : 'text-slate-900';
+      return `
+        <div class="playing-card p-1.5 flex flex-col justify-between ${colorClass}">
+          <div class="text-xs sm:text-sm font-extrabold leading-none">${escapeHTML(card.rank)}<span>${escapeHTML(card.suit)}</span></div>
+          <div class="text-xl sm:text-2xl self-center leading-none">${escapeHTML(card.suit)}</div>
+          <div class="text-xs sm:text-sm font-extrabold leading-none self-end rotate-180">${escapeHTML(card.rank)}<span>${escapeHTML(card.suit)}</span></div>
+        </div>
+      `;
+    }
+
+    function renderBlackjack() {
+      const state = clientViewState;
+      if (!state) return;
+
+      const banner = document.getElementById('bjStatusBanner');
+      const roleBadge = document.getElementById('bjRoleBadge');
+      const chipsDisplay = document.getElementById('bjMyChipsDisplay');
+      const refillBtn = document.getElementById('bjRefillBtn');
+      const dealerScoreEl = document.getElementById('bjDealerScore');
+      const dealerCardsEl = document.getElementById('bjDealerCards');
+      const playersContainer = document.getElementById('bjPlayersContainer');
+
+      const ctrlBetting = document.getElementById('bjControlsBetting');
+      const ctrlPlaying = document.getElementById('bjControlsPlaying');
+      const ctrlResult = document.getElementById('bjControlsResult');
+
+      banner.textContent = state.message || 'Játék folyamatban';
+      roleBadge.textContent = bjIsHost ? 'Asztalgazda (Host)' : 'Vendég játékos';
+
+      const me = state.players ? state.players[selfId] : null;
+      const myChips = me ? me.chips : savedChips;
+      const myBet = me ? me.bet : 0;
+      chipsDisplay.textContent = String(myChips);
+
+      if (myChips === 0 && myBet === 0) {
+        refillBtn.classList.remove('hidden');
+      } else {
+        refillBtn.classList.add('hidden');
+      }
+
+      // Osztó kártyák és pontszám
+      dealerCardsEl.innerHTML = (state.dealerCards || []).map(renderPlayingCardHTML).join('');
+      const dealerEval = calculateHandValue(state.dealerCards || []);
+      dealerScoreEl.textContent = String(dealerEval.total);
+
+      // Játékosok kirajzolása
+      const playerEntries = Object.values(state.players || {});
+      const activeTurnPid = state.phase === 'PLAYING' ? state.turnOrder[state.currentTurnIndex] : null;
+
+      playersContainer.innerHTML = playerEntries.map((p) => {
+        const isMe = p.id === selfId;
+        const isTurn = p.id === activeTurnPid;
+        const pEval = calculateHandValue(p.cards || []);
+        const borderClass = isTurn
+          ? 'border-amber-400 ring-2 ring-amber-400/50 bg-black/50'
+          : isMe
+            ? 'border-emerald-500/50 bg-black/40'
+            : 'border-white/15 bg-black/30';
+
+        const cardsHtml = (p.cards || []).length > 0
+          ? p.cards.map(renderPlayingCardHTML).join('')
+          : '<div class="text-xs text-emerald-200/60 italic py-6">Nincs osztott lap</div>';
+
+        return `
+          <div class="rounded-2xl border p-3.5 transition-all ${borderClass}">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="font-bold text-sm text-white truncate">${escapeHTML(p.name)}</span>
+                ${isMe ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold">TE</span>' : ''}
+              </div>
+              <span class="text-xs font-extrabold text-amber-400 shrink-0">${p.chips} 🪙</span>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-emerald-100/80 mb-2">
+              <span>Tét: <strong class="text-amber-300">${p.bet} 🪙</strong> ${p.betConfirmed && state.phase === 'BETTING' ? '✅' : ''}</span>
+              <span>Pont: <strong class="text-white">${pEval.total}</strong></span>
+            </div>
+
+            <div class="flex items-center justify-center gap-1.5 min-h-[96px] sm:min-h-[110px] flex-wrap">
+              ${cardsHtml}
+            </div>
+
+            ${p.resultText ? `<div class="mt-2 text-center text-xs font-extrabold px-2.5 py-1 rounded-lg bg-black/55 text-amber-300 border border-amber-500/30">${escapeHTML(p.resultText)}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      // Vezérlőpanelek váltása
+      ctrlBetting.classList.toggle('hidden', state.phase !== 'BETTING');
+      ctrlPlaying.classList.toggle('hidden', state.phase !== 'PLAYING');
+      ctrlResult.classList.toggle('hidden', state.phase !== 'RESULT');
+
+      if (state.phase === 'BETTING') {
+        document.getElementById('bjCurrentBetDisplay').textContent = String(myBet);
+        const confirmed = me ? me.betConfirmed : false;
+        document.querySelectorAll('.bj-chip-btn').forEach((btn) => {
+          const val = Number(btn.dataset.chip);
+          btn.disabled = confirmed || myChips < val;
+        });
+        document.getElementById('bjClearBetBtn').disabled = confirmed || myBet === 0;
+        document.getElementById('bjConfirmBetBtn').disabled = confirmed || myBet === 0;
+
+        const forceBtn = document.getElementById('bjForceDealBtn');
+        const anyReady = playerEntries.some((p) => p.bet > 0);
+        if (bjIsHost && anyReady && playerEntries.length > 1) {
+          forceBtn.classList.remove('hidden');
+        } else {
+          forceBtn.classList.add('hidden');
+        }
+      } else if (state.phase === 'PLAYING') {
+        const isMyTurn = activeTurnPid === selfId && me && me.status === 'PLAYING';
+        document.getElementById('bjHitBtn').disabled = !isMyTurn;
+        document.getElementById('bjStandBtn').disabled = !isMyTurn;
+        document.getElementById('bjDoubleBtn').disabled = !(isMyTurn && me.cards.length === 2 && me.chips >= me.bet);
+      }
+    }
+
+    document.querySelectorAll('.bj-chip-btn').forEach((btn) => {
+      btn.onclick = () => {
+        dispatchBjAction({ type: 'addBet', amount: Number(btn.dataset.chip) });
+      };
+    });
+
+    document.getElementById('bjClearBetBtn').onclick = () => dispatchBjAction({ type: 'clearBet' });
+    document.getElementById('bjConfirmBetBtn').onclick = () => dispatchBjAction({ type: 'confirmBet' });
+    document.getElementById('bjForceDealBtn').onclick = () => dispatchBjAction({ type: 'forceDeal' });
+    document.getElementById('bjHitBtn').onclick = () => dispatchBjAction({ type: 'hit' });
+    document.getElementById('bjStandBtn').onclick = () => dispatchBjAction({ type: 'stand' });
+    document.getElementById('bjDoubleBtn').onclick = () => dispatchBjAction({ type: 'double' });
+    document.getElementById('bjNewRoundBtn').onclick = () => dispatchBjAction({ type: 'newRound' });
+    document.getElementById('bjRefillBtn').onclick = () => dispatchBjAction({ type: 'refill' });
+
+    // =========================================================================
+    // 3. SUDOKU LOGIKA (BACKTRACKING GENERÁTOR + INTERAKTÍV FELÜLET)
+    // =========================================================================
+
+    let sdkDifficulty = 'easy';
+    let sdkSolution = [];
+    let sdkGiven = [];
+    let sdkUserGrid = [];
+    let sdkNotes = [];
+    let sdkSelected = { row: 0, col: 0 };
+    let sdkPencilMode = false;
+    let sdkMistakes = 0;
+    let sdkSeconds = 0;
+    let sdkTimerInterval = null;
+    let sdkGameOver = false;
+
+    function createEmptyGrid(fillVal = 0) {
+      return Array.from({ length: 9 }, () => Array(9).fill(fillVal));
+    }
+
+    function createEmptyNotes() {
+      return Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set()));
+    }
+
+    function isValidPlacement(board, row, col, num) {
+      for (let i = 0; i < 9; i++) {
+        if (board[row][i] === num) return false;
+        if (board[i][col] === num) return false;
+      }
+      const boxRow = Math.floor(row / 3) * 3;
+      const boxCol = Math.floor(col / 3) * 3;
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          if (board[boxRow + r][boxCol + c] === num) return false;
+        }
+      }
+      return true;
+    }
+
+    function fillSudokuBoard(board) {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] === 0) {
+            const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+            for (const num of nums) {
+              if (isValidPlacement(board, r, c, num)) {
+                board[r][c] = num;
+                if (fillSudokuBoard(board)) return true;
+                board[r][c] = 0;
+              }
+            }
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function countSolutions(board, limit = 2) {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (board[r][c] === 0) {
+            let count = 0;
+            for (let num = 1; num <= 9; num++) {
+              if (isValidPlacement(board, r, c, num)) {
+                board[r][c] = num;
+                count += countSolutions(board, limit);
+                board[r][c] = 0;
+                if (count >= limit) return count;
+              }
+            }
+            return count;
+          }
+        }
+      }
+      return 1;
+    }
+
+    function generateSudokuPuzzle(diff) {
+      const solved = createEmptyGrid(0);
+      fillSudokuBoard(solved);
+
+      const puzzle = solved.map((row) => [...row]);
+      const targets = { easy: 35, medium: 45, hard: 53 };
+      const toRemove = targets[diff] || 35;
+
+      const positions = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          positions.push([r, c]);
+        }
+      }
+      positions.sort(() => Math.random() - 0.5);
+
+      let removed = 0;
+      for (const [r, c] of positions) {
+        if (removed >= toRemove) break;
+        const backup = puzzle[r][c];
+        puzzle[r][c] = 0;
+        const copy = puzzle.map((row) => [...row]);
+        if (countSolutions(copy, 2) !== 1) {
+          puzzle[r][c] = backup;
+        } else {
+          removed += 1;
+        }
+      }
+
+      return { solved, puzzle };
+    }
+
+    function formatTimer(sec) {
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function startSudokuTimer() {
+      if (sdkTimerInterval) clearInterval(sdkTimerInterval);
+      sdkTimerInterval = setInterval(() => {
+        if (!sdkGameOver && activeTab === 'sudoku') {
+          sdkSeconds += 1;
+          document.getElementById('sdkTimerDisplay').textContent = formatTimer(sdkSeconds);
+        }
+      }, 1000);
+    }
+
+    function startNewSudokuGame() {
+      const { solved, puzzle } = generateSudokuPuzzle(sdkDifficulty);
+      sdkSolution = solved;
+      sdkGiven = puzzle.map((row) => row.map((v) => v !== 0));
+      sdkUserGrid = puzzle.map((row) => [...row]);
+      sdkNotes = createEmptyNotes();
+      sdkMistakes = 0;
+      sdkSeconds = 0;
+      sdkGameOver = false;
+      sdkSelected = { row: 0, col: 0 };
+
+      document.getElementById('sdkMistakesDisplay').textContent = '0 / 3';
+      document.getElementById('sdkTimerDisplay').textContent = '00:00';
+      document.getElementById('sdkOverlay').classList.add('hidden');
+      document.getElementById('sdkOverlayContinueBtn').classList.add('hidden');
+
+      renderSudokuAll();
+      startSudokuTimer();
+    }
+
+    function checkSudokuVictory() {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (sdkUserGrid[r][c] !== sdkSolution[r][c]) return false;
+        }
+      }
+      sdkGameOver = true;
+      document.getElementById('sdkOverlayIcon').textContent = '🏆';
+      document.getElementById('sdkOverlayTitle').textContent = 'Gratulálunk!';
+      document.getElementById('sdkOverlaySubtitle').textContent = `Megoldva ${formatTimer(sdkSeconds)} alatt (${sdkMistakes} hibával)!`;
+      document.getElementById('sdkOverlayContinueBtn').classList.add('hidden');
+      document.getElementById('sdkOverlay').classList.remove('hidden');
+      return true;
+    }
+
+    function inputSudokuNumber(num) {
+      if (sdkGameOver) return;
+      const { row, col } = sdkSelected;
+      if (sdkGiven[row][col]) return;
+
+      if (sdkPencilMode) {
+        if (sdkUserGrid[row][col] !== 0) return;
+        if (sdkNotes[row][col].has(num)) {
+          sdkNotes[row][col].delete(num);
+        } else {
+          sdkNotes[row][col].add(num);
+        }
+        renderSudokuAll();
+        return;
+      }
+
+      sdkUserGrid[row][col] = num;
+      sdkNotes[row][col].clear();
+
+      if (num !== sdkSolution[row][col]) {
+        sdkMistakes += 1;
+        document.getElementById('sdkMistakesDisplay').textContent = `${sdkMistakes} / 3`;
+        renderSudokuAll(true);
+
+        if (sdkMistakes >= 3) {
+          sdkGameOver = true;
+          document.getElementById('sdkOverlayIcon').textContent = '💥';
+          document.getElementById('sdkOverlayTitle').textContent = 'Elérted a 3 hibát!';
+          document.getElementById('sdkOverlaySubtitle').textContent = 'Indíthatsz új feladványt vagy folytathatod a gyakorlást.';
+          document.getElementById('sdkOverlayContinueBtn').classList.remove('hidden');
+          document.getElementById('sdkOverlay').classList.remove('hidden');
+        }
+        return;
+      }
+
+      // Automatikus jegyzettörlés az érintett sorból, oszlopból és 3x3-as blokkból
+      const br = Math.floor(row / 3) * 3;
+      const bc = Math.floor(col / 3) * 3;
+      for (let i = 0; i < 9; i++) {
+        sdkNotes[row][i].delete(num);
+        sdkNotes[i][col].delete(num);
+      }
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          sdkNotes[br + r][bc + c].delete(num);
+        }
+      }
+
+      renderSudokuAll();
+      checkSudokuVictory();
+    }
+
+    function eraseSudokuCell() {
+      if (sdkGameOver) return;
+      const { row, col } = sdkSelected;
+      if (sdkGiven[row][col]) return;
+      sdkUserGrid[row][col] = 0;
+      sdkNotes[row][col].clear();
+      renderSudokuAll();
+    }
+
+    function giveSudokuHint() {
+      if (sdkGameOver) return;
+      const { row, col } = sdkSelected;
+      if (!sdkGiven[row][col] && sdkUserGrid[row][col] !== sdkSolution[row][col]) {
+        sdkUserGrid[row][col] = sdkSolution[row][col];
+        sdkNotes[row][col].clear();
+        renderSudokuAll();
+        checkSudokuVictory();
+        return;
+      }
+
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (sdkUserGrid[r][c] !== sdkSolution[r][c]) {
+            sdkSelected = { row: r, col: c };
+            sdkUserGrid[r][c] = sdkSolution[r][c];
+            sdkNotes[r][c].clear();
+            renderSudokuAll();
+            checkSudokuVictory();
+            return;
+          }
+        }
+      }
+    }
+
+    function renderSudokuAll(shakeSelected = false) {
+      const boardEl = document.getElementById('sdkBoard');
+      boardEl.innerHTML = '';
+
+      const selVal = sdkUserGrid[sdkSelected.row][sdkSelected.col];
+      const selBoxR = Math.floor(sdkSelected.row / 3);
+      const selBoxC = Math.floor(sdkSelected.col / 3);
+
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const cell = document.createElement('div');
+          cell.dataset.row = String(r);
+          cell.dataset.col = String(c);
+
+          const isSelected = r === sdkSelected.row && c === sdkSelected.col;
+          const isPeer =
+            r === sdkSelected.row ||
+            c === sdkSelected.col ||
+            (Math.floor(r / 3) === selBoxR && Math.floor(c / 3) === selBoxC);
+          const val = sdkUserGrid[r][c];
+          const isSameVal = val !== 0 && val === selVal;
+          const isWrong = val !== 0 && val !== sdkSolution[r][c];
+
+          let bgClass = 'bg-slate-900 hover:bg-slate-800';
+          if (isSelected) {
+            bgClass = 'bg-indigo-600/85';
+          } else if (isWrong) {
+            bgClass = 'bg-rose-950/90';
+          } else if (isSameVal) {
+            bgClass = 'bg-sky-900/75';
+          } else if (isPeer) {
+            bgClass = 'bg-slate-800/80';
+          }
+
+          cell.className = `sudoku-cell ${bgClass} ${isSelected && shakeSelected ? 'shake-error' : ''}`;
+
+          if (val !== 0) {
+            const textColor = sdkGiven[r][c]
+              ? 'text-slate-100 font-extrabold'
+              : isWrong
+                ? 'text-rose-400 font-bold'
+                : 'text-sky-300 font-bold';
+            cell.innerHTML = `<span class="text-lg sm:text-2xl ${textColor}">${val}</span>`;
+          } else if (sdkNotes[r][c].size > 0) {
+            let notesHtml = '<div class="grid grid-cols-3 w-full h-full p-0.5 text-[9px] sm:text-[10px] leading-none text-slate-400">';
+            for (let n = 1; n <= 9; n++) {
+              notesHtml += `<span class="flex items-center justify-center">${sdkNotes[r][c].has(n) ? n : ''}</span>`;
+            }
+            notesHtml += '</div>';
+            cell.innerHTML = notesHtml;
+          }
+
+          cell.onclick = () => {
+            sdkSelected = { row: r, col: c };
+            renderSudokuAll();
+          };
+
+          boardEl.appendChild(cell);
+        }
+      }
+
+      // 1-9 számpad frissítése hátralévő darabszámmal
+      const numpadEl = document.getElementById('sdkNumpad');
+      numpadEl.innerHTML = '';
+      const counts = Array(10).fill(0);
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const v = sdkUserGrid[r][c];
+          if (v >= 1 && v <= 9 && v === sdkSolution[r][c]) {
+            counts[v] += 1;
+          }
+        }
+      }
+
+      for (let n = 1; n <= 9; n++) {
+        const remaining = Math.max(0, 9 - counts[n]);
+        const btn = document.createElement('button');
+        btn.className = 'py-2.5 sm:py-3 rounded-xl bg-slate-950 hover:bg-indigo-600 border border-slate-700 flex flex-col items-center justify-center transition shadow';
+        btn.innerHTML = `
+          <span class="text-lg sm:text-xl font-extrabold text-white leading-none">${n}</span>
+          <span class="text-[10px] text-slate-400 mt-1">${remaining} db</span>
+        `;
+        btn.onclick = () => inputSudokuNumber(n);
+        numpadEl.appendChild(btn);
+      }
+
+      const pencilBadge = document.getElementById('sdkPencilBadge');
+      const pencilBtn = document.getElementById('sdkPencilBtn');
+      if (sdkPencilMode) {
+        pencilBadge.textContent = 'BE';
+        pencilBadge.className = 'absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-600 text-white';
+        pencilBtn.classList.add('border-emerald-500');
+      } else {
+        pencilBadge.textContent = 'KI';
+        pencilBadge.className = 'absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-800 text-slate-400';
+        pencilBtn.classList.remove('border-emerald-500');
+      }
+    }
+
+    document.querySelectorAll('.sdk-diff-btn').forEach((btn) => {
+      btn.onclick = () => {
+        sdkDifficulty = btn.dataset.diff;
+        document.querySelectorAll('.sdk-diff-btn').forEach((b) => {
+          b.className = b === btn
+            ? 'sdk-diff-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-indigo-600 text-white transition'
+            : 'sdk-diff-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition';
+        });
+        startNewSudokuGame();
+      };
+    });
+
+    document.getElementById('sdkNewGameBtn').onclick = startNewSudokuGame;
+    document.getElementById('sdkOverlayNewBtn').onclick = startNewSudokuGame;
+    document.getElementById('sdkOverlayContinueBtn').onclick = () => {
+      sdkGameOver = false;
+      document.getElementById('sdkOverlay').classList.add('hidden');
+    };
+    document.getElementById('sdkPencilBtn').onclick = () => {
+      sdkPencilMode = !sdkPencilMode;
+      renderSudokuAll();
+    };
+    document.getElementById('sdkEraseBtn').onclick = eraseSudokuCell;
+    document.getElementById('sdkHintBtn').onclick = giveSudokuHint;
+
+    window.addEventListener('keydown', (e) => {
+      if (activeTab !== 'sudoku') return;
+      if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+      if (e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        inputSudokuNumber(Number(e.key));
+      } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+        e.preventDefault();
+        eraseSudokuCell();
+      } else if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        sdkPencilMode = !sdkPencilMode;
+        renderSudokuAll();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        sdkSelected.row = (sdkSelected.row + 8) % 9;
+        renderSudokuAll();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        sdkSelected.row = (sdkSelected.row + 1) % 9;
+        renderSudokuAll();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        sdkSelected.col = (sdkSelected.col + 8) % 9;
+        renderSudokuAll();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        sdkSelected.col = (sdkSelected.col + 1) % 9;
+        renderSudokuAll();
+      }
+    });
+
+    // =========================================================================
+    // 4. ALKALMAZÁS INDÍTÁSA
+    // =========================================================================
+
+    window.addEventListener('unhandledrejection', (event) => {
+      if (event.reason && event.reason.name === 'SecurityError') {
+        event.preventDefault();
+      }
+    });
+
+    connectToChessRoom(currentRoomId);
+    connectToBlackjackRoom(currentRoomId);
+    startNewSudokuGame();
+  </script>
+</body>
+</html>
