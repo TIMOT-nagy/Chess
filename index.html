@@ -23,6 +23,7 @@
       text-align: center;
       max-width: 440px;
       width: 100%;
+      box-sizing: border-box;
     }
     button {
       background: #4caf50;
@@ -39,6 +40,7 @@
     #board {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
       width: min(90vw, 480px);
       height: min(90vw, 480px);
       border: 4px solid #3c3c4a;
@@ -51,8 +53,10 @@
       align-items: center;
       justify-content: center;
       font-size: clamp(28px, 7vw, 44px);
+      line-height: 1;
       cursor: pointer;
       position: relative;
+      overflow: hidden;
     }
     .light { background: #eeeed2; }
     .dark { background: #769656; }
@@ -65,8 +69,14 @@
       border-radius: 50%;
       position: absolute;
     }
-    .piece-w { color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.85); }
-    .piece-b { color: #18181b; }
+    .piece-w {
+      color: #ffffff;
+      -webkit-text-stroke: 1.5px #18181b;
+      text-shadow: 0 2px 3px rgba(0, 0, 0, 0.45);
+    }
+    .piece-b {
+      color: #18181b;
+    }
   </style>
 </head>
 <body>
@@ -80,11 +90,9 @@
   <div id="board"></div>
 
   <script type="module">
-    // 1. Külső könyvtárak betöltése telepítés nélkül (CDN-ről)
     import { Chess } from 'https://esm.sh/chess.js@1.0.0-beta.8';
     import { joinRoom, selfId } from 'https://esm.sh/trystero@0.20.0/nostr';
 
-    // 2. Szobakód kiolvasása az URL-ből, vagy új generálása
     const urlParams = new URLSearchParams(window.location.search);
     let roomId = urlParams.get('szoba');
     if (!roomId) {
@@ -92,40 +100,36 @@
       window.history.replaceState({}, '', `?szoba=${roomId}`);
     }
 
-    // Meghívó link másolása gomb
     document.getElementById('copyBtn').onclick = () => {
       navigator.clipboard.writeText(window.location.href);
       alert('Link vágólapra másolva! Küldd el a barátodnak.');
     };
 
-    // 3. Játékállapot és P2P szoba inicializálása
     const game = new Chess();
     const room = joinRoom({ appId: 'barati-sakk-0ft-v1' }, roomId);
     const [sendMove, getMove] = room.makeAction('move');
 
-    let myColor = null;          // 'w' (világos) vagy 'b' (sötét)
-    let selectedSquare = null;   // Aktuálisan kijelölt mező (pl. 'e2')
+    let myColor = null;
+    let selectedSquare = null;
     let opponentJoined = false;
 
     const statusEl = document.getElementById('status');
     const substatusEl = document.getElementById('substatus');
     const boardEl = document.getElementById('board');
 
-    // Bábuk Unicode karakterei (\uFE0E megakadályozza, hogy mobilon emojivá alakuljanak)
+    // Mindkét színhez a telt bábukat használjuk, a színt és körvonalat a CSS adja
     const PIECES = {
-      w: { k: '♔\uFE0E', q: '♕\uFE0E', r: '♖\uFE0E', b: '♗\uFE0E', n: '♘\uFE0E', p: '♙\uFE0E' },
+      w: { k: '♚\uFE0E', q: '♛\uFE0E', r: '♜\uFE0E', b: '♝\uFE0E', n: '♞\uFE0E', p: '♟\uFE0E' },
       b: { k: '♚\uFE0E', q: '♛\uFE0E', r: '♜\uFE0E', b: '♝\uFE0E', n: '♞\uFE0E', p: '♟\uFE0E' }
     };
 
     statusEl.textContent = 'Várakozás a barátodra...';
     substatusEl.textContent = `Szobakód: ${roomId}`;
 
-    // 4. Amikor a barátod megnyitja a linket és csatlakozik
     room.onPeerJoin((peerId) => {
-      if (opponentJoined) return; // Harmadik fél ne zavarja meg a meccset
+      if (opponentJoined) return;
       opponentJoined = true;
 
-      // Szerver nélküli színsorsolás: a két böngésző saját azonosítója dönti el, ki a világos
       myColor = selfId < peerId ? 'w' : 'b';
       game.reset();
       selectedSquare = null;
@@ -135,13 +139,11 @@
       renderBoard();
     });
 
-    // Ha a barátod bezárja az oldalt
     room.onPeerLeave(() => {
       opponentJoined = false;
       statusEl.textContent = 'Az ellenfél kilépett.';
     });
 
-    // 5. Amikor lépés érkezik a barátodtól
     getMove((move) => {
       game.move(move);
       selectedSquare = null;
@@ -149,28 +151,23 @@
       renderBoard();
     });
 
-    // 6. Kattintás kezelése a táblán
     function handleSquareClick(square) {
       if (!opponentJoined || game.isGameOver()) return;
-      if (game.turn() !== myColor) return; // Csak a saját körödben léphetsz
+      if (game.turn() !== myColor) return;
 
-      // Ha már ki van jelölve egy bábu, megpróbálunk lépni vele
       if (selectedSquare) {
         try {
           const moveData = { from: selectedSquare, to: square, promotion: 'q' };
-          const move = game.move(moveData); // Ha szabálytalan, hibát dob és a catch ágra ugrik
+          game.move(moveData);
           
           selectedSquare = null;
-          sendMove(moveData); // Elküldjük a szabályos lépést a barátodnak
+          sendMove(moveData);
           updateStatus();
           renderBoard();
           return;
-        } catch (e) {
-          // Nem szabályos célmező: megnézzük, nem egy másik saját bábura kattintott-e
-        }
+        } catch (e) {}
       }
 
-      // Saját bábu kijelölése
       const piece = game.get(square);
       if (piece && piece.color === myColor) {
         selectedSquare = square;
@@ -180,7 +177,6 @@
       renderBoard();
     }
 
-    // 7. Szöveges állapot frissítése
     function updateStatus() {
       if (game.isCheckmate()) {
         statusEl.textContent = game.turn() === myColor ? 'Matt! Vesztettél.' : 'Sakk-matt! Nyertél!';
@@ -193,43 +189,10 @@
       }
     }
 
-    // 8. A 8x8-as tábla kirajzolása
     function renderBoard() {
       boardEl.innerHTML = '';
       const boardState = game.board();
       
-      // Érvényes lépések lekérése a kijelölt bábunak (pöttyök kirajzolásához)
       const legalTargets = selectedSquare
         ? game.moves({ square: selectedSquare, verbose: true }).map(m => m.to)
         : [];
-
-      // Ha sötéttel vagy, megfordítjuk a táblát, hogy a te bábaid legyenek alul
-      const rows = myColor === 'b' ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
-      const cols = myColor === 'b' ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
-
-      for (const r of rows) {
-        for (const c of cols) {
-          const sqDiv = document.createElement('div');
-          const isLight = (r + c) % 2 === 0;
-          const squareName = String.fromCharCode(97 + c) + (8 - r); // pl. 'e4'
-
-          sqDiv.className = `square ${isLight ? 'light' : 'dark'}`;
-          if (selectedSquare === squareName) sqDiv.classList.add('selected');
-          if (legalTargets.includes(squareName)) sqDiv.classList.add('hint');
-
-          const piece = boardState[r][c];
-          if (piece) {
-            sqDiv.textContent = PIECES[piece.color][piece.type];
-            sqDiv.classList.add(piece.color === 'w' ? 'piece-w' : 'piece-b');
-          }
-
-          sqDiv.onclick = () => handleSquareClick(squareName);
-          boardEl.appendChild(sqDiv);
-        }
-      }
-    }
-
-    renderBoard();
-  </script>
-</body>
-</html>
