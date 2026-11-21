@@ -1002,6 +1002,14 @@
     import { joinRoom as joinMqttRoom } from 'https://esm.sh/trystero@0.20.0/mqtt';
     import QRCode from 'https://esm.sh/qrcode@1.5.4';
 
+    // Védelem véletlen dupla HTML-beillesztés ellen (soha nem jelenik meg második képernyő)
+    (function cleanupDuplicateScreens() {
+      const headers = document.querySelectorAll('header');
+      for (let i = 1; i < headers.length; i++) headers[i].remove();
+      const mains = document.querySelectorAll('main');
+      for (let i = 1; i < mains.length; i++) mains[i].remove();
+    })();
+
     // =========================================================================
     // 1. MEMÓRIA ALAPÚ TÁROLÓ, TÉMAKEZELÉS ÉS BIZTONSÁGOS SEGÉDFÜGGVÉNYEK
     // =========================================================================
@@ -1184,7 +1192,7 @@
       'wss://relay.snort.social'
     ];
 
-    let activeTransports = []; // [{ name, room, sendMsg }]
+    let activeTransports = [];
     let remotePeerUid = null;
     let remotePeerName = 'Ellenfél';
     let remotePeerTab = 'chess';
@@ -1201,7 +1209,6 @@
         _fromUid: myUid,
         _ts: Date.now()
       };
-      // Csak az első aktív kapcsolaton (vagy az összesen, a fogadó deduplikál) küldjük
       for (const t of activeTransports) {
         try {
           if (t.senders[channel]) {
@@ -1300,7 +1307,6 @@
           });
 
           room.onPeerLeave(() => {
-            // Ellenőrizzük, maradt-e aktív peer bármelyik transzporton
             setTimeout(() => {
               let anyPeersLeft = false;
               for (const tr of activeTransports) {
@@ -1319,17 +1325,12 @@
           });
 
           activeTransports.push({ name, room, senders });
-        } catch (e) {
-          // Ha az egyik jelzőhálózat nem elérhető, a másik továbbra is működik
-        }
+        } catch (e) {}
       }
 
-      // 1. Nostr relé hálózat
       attachTransport('nostr', joinNostrRoom, { relayUrls: RELIABLE_NOSTR_RELAYS });
-      // 2. MQTT WebSocket bróker hálózat (gyors mobil tartalék)
       attachTransport('mqtt', joinMqttRoom);
 
-      // Rendszeres kézfogás (hello), amíg a kapcsolat stabilizálódik
       broadcastSysHello();
       helloInterval = setInterval(() => {
         broadcastSysHello();
@@ -1339,7 +1340,6 @@
       updateGlobalP2PBar();
     }
 
-    // Bejövő csomagok deduplikálása (mivel Nostr és MQTT is szállíthatja)
     const seenPacketKeys = new Set();
     function handleIncomingUnifiedPacket(channel, data) {
       if (!data || !data._fromUid || data._fromUid === myUid) return;
@@ -1384,7 +1384,6 @@
     }
 
     function onPeerConnectedAllGames(helloData) {
-      // Sakk
       if (chessSoloMode) {
         chessSoloMode = false;
         document.getElementById('chessAiDifficulty').classList.add('hidden');
@@ -1396,7 +1395,6 @@
       chessLastMove = null;
       updateChessUI();
 
-      // Póker
       if (pokerSoloMode) {
         pokerSoloMode = false;
         document.getElementById('pokerModeToggleBtn').innerHTML = '<span>🌐</span> Mód: Online (2 fő)';
@@ -1412,14 +1410,12 @@
       }
       renderPokerUI();
 
-      // Blackjack
       if (isBjHost()) {
         resetLocalBjState();
         syncBjToGuest();
       }
       renderBjUI();
 
-      // Amőba
       if (gomokuSoloMode) {
         gomokuSoloMode = false;
         document.getElementById('gomokuModeBtn').textContent = '🌐 Mód: Online (2 fő)';
@@ -1427,7 +1423,6 @@
       gomokuMySymbol = myUid < remotePeerUid ? 'X' : 'O';
       resetGomoku(false);
 
-      // Négyet egy sorba
       if (c4SoloMode) {
         c4SoloMode = false;
         document.getElementById('c4ModeBtn').textContent = '🌐 Mód: Online (2 fő)';
@@ -1435,7 +1430,6 @@
       c4MyPlayer = myUid < remotePeerUid ? 1 : 2;
       resetC4(false);
 
-      // Memória
       if (memSoloMode) {
         memSoloMode = false;
         document.getElementById('memoryModeBtn').textContent = '🌐 Mód: Online (2 fő)';
@@ -1446,7 +1440,6 @@
         renderMemory();
       }
 
-      // Lövölde
       if (shooterSoloMode) {
         shooterSoloMode = false;
         document.getElementById('shooterModeBtn').textContent = '🌐 Mód: Online (1v1)';
@@ -2290,7 +2283,6 @@
         pokerState.pot += pay;
         actor.acted = true;
       } else if (action === 'raise') {
-        // Fedezetlen all-in korlátozása: legfeljebb annyit emelhetünk, amennyit az ellenfél még meg tud adni
         const maxEffectiveAdd = toCall + other.chips;
         const desiredAdd = toCall + Math.max(20, raiseExtra);
         const pay = Math.min(desiredAdd, actor.chips, maxEffectiveAdd);
@@ -2900,7 +2892,7 @@
     let gomokuBoard = Array.from({ length: 15 }, () => Array(15).fill(null));
     let gomokuMySymbol = 'X';
     let gomokuTurn = 'X';
-    let gomokuWinner = null; // 'X', 'O', or 'DRAW'
+    let gomokuWinner = null;
     let gomokuWinLine = [];
     let gomokuLastPos = null;
 
@@ -4323,6 +4315,8 @@
     // 11. INDÍTÁS ÉS CÍMKÉK SZINKRONIZÁLÁSA
     // =========================================================================
     function updateAllPlayerLabels() {
+      if (isPokerHost() && pokerState.p1) pokerState.p1.name = playerName;
+      if (isBjHost() && bjState.p1) bjState.p1.name = playerName;
       updateChessUI();
       renderPokerUI();
       renderBjUI();
