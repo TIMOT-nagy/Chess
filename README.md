@@ -1,2 +1,2 @@
-The link for the site: https://timot-nagy.github.io/Chess
+The link for the site: 
 !!! I used AI for this project !!!
